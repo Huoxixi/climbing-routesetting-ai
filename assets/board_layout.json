@@ -1,0 +1,6 @@
+﻿{
+  "board": "moonboard",
+  "rows": 18,
+  "cols": 11,
+  "description": "Standard MoonBoard 18x11 layout"
+}
