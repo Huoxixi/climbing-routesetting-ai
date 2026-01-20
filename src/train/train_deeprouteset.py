@@ -48,7 +48,8 @@ def main():
     cfg = yaml.safe_load(Path(args.config).read_text(encoding='utf-8'))
     set_seed(int(cfg['project']['seed']))
 
-    run = make_run_dir('deeprouteset')
+    out_dir = cfg.get('project', {}).get('out_dir')
+    run = make_run_dir('deeprouteset', root=out_dir)
     run.config_snapshot.write_text(Path(args.config).read_text(encoding='utf-8'), encoding='utf-8')
     write_meta(run)
 

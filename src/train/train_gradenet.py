@@ -42,7 +42,18 @@ def main():
     cfg = yaml.safe_load(Path(args.config).read_text(encoding='utf-8'))
     set_seed(int(cfg['project']['seed']))
 
-    run = make_run_dir('gradenet')
+    import inspect
+    from src.common import paths as paths_mod
+
+    print("[DEBUG] args.config =", args.config)
+    print("[DEBUG] project.out_dir =", cfg.get("project", {}).get("out_dir"))
+    print("[DEBUG] paths module file =", paths_mod.__file__)
+    print("[DEBUG] make_run_dir signature =", inspect.signature(make_run_dir))
+
+
+    out_dir = cfg.get('project', {}).get('out_dir')
+    run = make_run_dir('gradenet', root=out_dir)
+
     run.config_snapshot.write_text(Path(args.config).read_text(encoding='utf-8'), encoding='utf-8')
     write_meta(run)
 

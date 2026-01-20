@@ -37,3 +37,13 @@ generation:
   samples_per_grade: 50
   temperature: 1.0
   top_k: 10
+
+  data:
+  source: toy
+  raw_path: data/raw/moonboard_routes.jsonl
+  processed_dir: data/processed
+  toy_n_routes: 200
+  train_ratio: 0.8
+  val_ratio: 0.1
+  max_seq_len: 24
+
