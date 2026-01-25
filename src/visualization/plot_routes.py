@@ -4,115 +4,147 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pathlib import Path
 
-# MoonBoard 标准布局 (18行 x 11列)
+# MoonBoard 2016 物理布局参数
 ROWS = 18
 COLS = 11
 
-# 难度颜色映射
-GRADE_COLORS = {
-    3: "#2ecc71", # V3 Green
-    4: "#f1c40f", # V4 Yellow
-    5: "#e67e22", # V5 Orange
-    "default": "#3498db"
-}
-
 def get_rc_from_id(hid):
-    """根据 ID 计算行列 (假设 ID = r * 11 + c)"""
+    """将 ID 转换为 (行, 列)"""
     r = hid // COLS
     c = hid % COLS
     return r, c
 
-def parse_tokens(tokens):
-    """解析生成的 Token，并进行视觉修正"""
-    holds = []
-    parsed_items = []
+def enforce_physics_rules(tokens):
+    """
+    【核心重构】物理规则引擎
+    不依赖 AI 的 S/F 标签，而是根据几何位置强制分配角色。
+    规则：
+    1. 收集所有被选中的点。
+    2. 按高度 (Row) 从低到高排序。
+    3. 最底部的点 -> 强制为 Start (绿色)。
+    4. 最顶部的点 -> 强制为 Finish (红色)。
+    5. 中间的所有点 -> 强制为 Middle (蓝色)。
+    """
+    unique_holds = set()
     
+    # 1. 提取所有有效坐标
     for t in tokens:
         if "_H" not in t: continue
-        parts = t.split("_H")
-        if len(parts) != 2: continue
-        role = parts[0] # S, M, F
-        hid = int(parts[1])
-        parsed_items.append({"role": role, "hid": hid})
-
-    if not parsed_items:
+        try:
+            # 兼容 S_H15, M_H15, F_H15, 甚至纯 H15
+            parts = t.split("_H")
+            hid = int(parts[-1]) 
+            unique_holds.add(hid)
+        except:
+            continue
+            
+    if not unique_holds:
         return []
 
-    # 逻辑修正：如果全是 M，强制把首尾标记为 S 和 F
-    has_start = any(x['role'] == 'S' for x in parsed_items)
-    has_end = any(x['role'] == 'F' for x in parsed_items)
-    
-    for i, item in enumerate(parsed_items):
-        role = item['role']
-        hid = item['hid']
-        
-        if i == 0 and not has_start: role = 'S'
-        if i == len(parsed_items) - 1 and not has_end: role = 'F'
-            
+    # 2. 转换为对象并排序
+    points = []
+    for hid in unique_holds:
         r, c = get_rc_from_id(hid)
-        holds.append({"r": r, "c": c, "role": role})
-        
-    return holds
+        points.append({"r": r, "c": c, "hid": hid})
+    
+    # 按行(r)从小到大排序，如果行相同按列(c)排
+    points.sort(key=lambda x: (x['r'], x['c']))
 
-def draw_board(ax):
-    """绘制 MoonBoard 背景"""
+    # 3. 强制分配角色
+    final_holds = []
+    
+    min_r = points[0]['r']
+    max_r = points[-1]['r']
+
+    for p in points:
+        role = "M" # 默认中间点
+        
+        # 规则：最低的一层（或多层，如果最低点有多个）是起点
+        # 这里简化：绝对最低的点肯定是起点
+        if p['r'] == min_r:
+            role = "S"
+            
+        # 规则：绝对最高的点肯定是终点
+        # 只有当它比起点高的时候才设为终点 (避免单点线路既是S又是F)
+        elif p['r'] == max_r and max_r > min_r:
+            role = "F"
+            
+        final_holds.append({"r": p['r'], "c": p['c'], "role": role})
+
+    return final_holds
+
+def draw_moonboard_grid(ax):
+    """绘制极简且专业的 MoonBoard 网格"""
     ax.set_xlim(-0.5, COLS - 0.5)
     ax.set_ylim(-0.5, ROWS - 0.5)
     ax.set_aspect('equal')
-    ax.grid(True, color='#e0e0e0', linestyle='-', linewidth=0.5, zorder=0)
+    ax.set_facecolor('#FAFAFA') # 干净的灰白底
     
-    # 边框
-    rect = patches.Rectangle((-0.5, -0.5), COLS, ROWS, linewidth=3, edgecolor='#333333', facecolor='#f9f9f9', zorder=0)
+    # 细网格
+    for x in range(COLS + 1):
+        ax.axvline(x - 0.5, color='#E0E0E0', lw=0.5, zorder=0)
+    for y in range(ROWS + 1):
+        ax.axhline(y - 0.5, color='#E0E0E0', lw=0.5, zorder=0)
+
+    # 粗边框
+    rect = patches.Rectangle((-0.5, -0.5), COLS, ROWS, linewidth=2, edgecolor='#333333', facecolor='none', zorder=1)
     ax.add_patch(rect)
     
-    # 坐标轴
+    # 刻度
     ax.set_xticks(range(COLS))
-    ax.set_xticklabels(['A','B','C','D','E','F','G','H','I','J','K'], fontsize=10, fontweight='bold', color='#555')
+    ax.set_xticklabels([chr(ord('A')+i) for i in range(COLS)], fontweight='bold', color='#444')
     ax.set_yticks(range(ROWS))
-    ax.set_yticklabels(range(1, ROWS+1), fontsize=10, fontweight='bold', color='#555')
-    ax.tick_params(left=False, bottom=False)
+    ax.set_yticklabels(range(1, ROWS+1), fontweight='bold', color='#444')
+    ax.tick_params(length=0) 
 
-def plot_route(route, save_path):
+def plot_route(route_data, save_path):
     fig, ax = plt.subplots(figsize=(6, 9))
-    draw_board(ax)
+    draw_moonboard_grid(ax)
     
-    holds = parse_tokens(route.get("tokens", []))
-    grade = route.get("grade", "?")
-    theme_color = GRADE_COLORS.get(grade, GRADE_COLORS["default"])
+    holds = enforce_physics_rules(route_data.get("tokens", []))
+    grade = route_data.get("grade", "?")
     
-    # 1. 先画连接线 (模拟手臂移动)
-    for i in range(len(holds) - 1):
-        h1 = holds[i]
-        h2 = holds[i+1]
-        ax.plot([h1['c'], h2['c']], [h1['r'], h2['r']], color=theme_color, linewidth=2, alpha=0.3, zorder=5)
+    # 如果没有点，直接跳过
+    if not holds:
+        plt.close()
+        return
 
-    # 2. 再画岩点
+    # 绘制
     for h in holds:
         r, c, role = h['r'], h['c'], h['role']
         
         if role == 'S':
-            color = '#27ae60' # 起步绿
-            radius = 0.4
+            color = '#00C853' # 鲜艳的绿
+            edge = '#005020'
             text = 'S'
-            edge = 'black'
-        elif role == 'F':
-            color = '#c0392b' # 完攀红
             radius = 0.4
+            z = 20
+        elif role == 'F':
+            color = '#D50000' # 鲜艳的红
+            edge = '#500000'
             text = 'F'
-            edge = 'black'
-        else: # Middle
-            color = theme_color
-            radius = 0.25
-            text = ''
+            radius = 0.4
+            z = 20
+        else:
+            color = '#2962FF' # 鲜艳的蓝
             edge = 'none'
+            text = ''
+            radius = 0.25 # 中间点稍微小一点，突出起终点
+            z = 10
             
-        circ = patches.Circle((c, r), radius=radius, facecolor=color, edgecolor=edge, linewidth=1.5, alpha=0.9, zorder=10)
+        # 1. 绘制光晕 (Glow)
+        glow = patches.Circle((c, r), radius=radius+0.15, facecolor=color, alpha=0.2, zorder=z-5)
+        ax.add_patch(glow)
+        
+        # 2. 绘制实体点
+        circ = patches.Circle((c, r), radius=radius, facecolor=color, edgecolor=edge, linewidth=1.5, zorder=z)
         ax.add_patch(circ)
         
+        # 3. 绘制文字
         if text:
-            ax.text(c, r, text, color='white', ha='center', va='center', fontweight='bold', fontsize=10, zorder=20)
+            ax.text(c, r, text, color='white', ha='center', va='center', fontweight='bold', fontsize=11, zorder=z+1)
 
-    plt.title(f"AI Route | Grade: V{grade}", fontsize=15, fontweight='bold', pad=12, color='#333')
+    plt.title(f"Generated Route | Grade V{grade}", fontsize=14, fontweight='bold', pad=12, color='#333')
     plt.tight_layout()
     plt.savefig(save_path, dpi=120, bbox_inches='tight')
     plt.close()
@@ -121,7 +153,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--limit", type=int, default=20)
+    ap.add_argument("--limit", type=int, default=50) # 多画几张看看
     args = ap.parse_args()
 
     inp = Path(args.file)
@@ -129,7 +161,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
 
     lines = inp.read_text(encoding='utf-8').strip().splitlines()
-    print(f"[plot] Found {len(lines)} routes. Plotting first {args.limit}...")
+    print(f"[Visualizer] Found {len(lines)} routes. Processing with Physics Rules...")
     
     count = 0
     for i, line in enumerate(lines):
@@ -137,11 +169,15 @@ def main():
         if not line.strip(): continue
         
         rec = json.loads(line)
-        fname = f"route_{i:03d}_V{rec.get('grade','?')}.png"
+        # 过滤掉点数过少的废线
+        if len(rec.get("tokens", [])) < 3: 
+            continue
+            
+        fname = f"clean_route_{i:03d}_V{rec.get('grade','?')}.png"
         plot_route(rec, out / fname)
         count += 1
         
-    print(f"[plot] Saved {count} images to {out}")
+    print(f"[Visualizer] Saved {count} standardized images to {out}")
 
 if __name__ == "__main__":
     main()
