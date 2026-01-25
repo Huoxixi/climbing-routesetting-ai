@@ -14,9 +14,7 @@ from src.common.logging import get_logger
 from src.common.paths import make_run_dir, write_meta
 from src.data.tokenizer import load_tokenizer
 
-# ✅ 引入模型
 from src.models.deeprouteset import DeepRouteSet
-# ✅ 引入 BetaMove 相关组件 (修复逻辑断层)
 from src.betamove.betamove import run_betamove
 from src.betamove.constraints import Constraints
 from src.env.board import Board
@@ -24,16 +22,16 @@ from src.env.board import Board
 
 def parse_tokens_to_holds(tokens: List[str]) -> Tuple[Optional[int], Optional[int], List[int]]:
     """
-    将 token 序列 (e.g. ['S_H4', 'M_H10', 'F_H140']) 解析为 BetaMove 需要的 ID。
-    返回: (start_id, end_id, all_hold_ids)
+    解析 Token 序列。
+    策略调整：如果模型没有显式生成 S_ 或 F_ 标签，
+    则默认使用序列的第一个点作为 Start，最后一个点作为 End。
     """
-    start = None
-    end = None
+    explicit_start = None
+    explicit_end = None
     holds = []
     
     for t in tokens:
-        # 简单正则提取: S_H123 -> 123
-        # 格式应该是 {ROLE}_H{ID}
+        # 提取 ID：无论是 S_H12, M_H12, 还是 F_H12，都提取出 12
         if "_H" not in t:
             continue
         
@@ -51,11 +49,24 @@ def parse_tokens_to_holds(tokens: List[str]) -> Tuple[Optional[int], Optional[in
         holds.append(hid)
         
         if role_part == "S":
-            start = hid
+            explicit_start = hid
         elif role_part == "F":
-            end = hid
+            explicit_end = hid
 
-    return start, end, holds
+    # ---- 鲁棒性修复 (Robustness Fix) ----
+    # 如果没有找到点，直接返回空
+    if not holds:
+        return None, None, []
+
+    # 如果模型忘了标记 Start，就用第一个点
+    final_start = explicit_start if explicit_start is not None else holds[0]
+    
+    # 如果模型忘了标记 End，就用最后一个点
+    final_end = explicit_end if explicit_end is not None else holds[-1]
+
+    # 如果只有一个点，Start 和 End 都是它，这在物理上可能导致距离为0，但在逻辑上是通的
+    
+    return final_start, final_end, holds
 
 
 def main():
@@ -83,10 +94,8 @@ def main():
 
     # 3. 加载模型
     logger.info(f"Loading checkpoint: {args.ckpt}")
-    ckpt = torch.load(args.ckpt, map_location="cpu") # 先加载到 cpu 避免显存碎片
+    ckpt = torch.load(args.ckpt, map_location="cpu")
     
-    # 确保从 checkpoint 或 config 中获取正确的参数
-    # 如果 checkpoint 中保存了 args 最好，否则从 cfg 读取
     model = DeepRouteSet(
         vocab_size=len(tok.vocab),
         embed_dim=int(cfg["model"]["embed_dim"]),
@@ -97,13 +106,11 @@ def main():
     model.load_state_dict(ckpt["state_dict"] if "state_dict" in ckpt else ckpt)
     model.to(device).eval()
 
-    # 4. 准备 BetaMove 环境 (Board & Constraints)
-    # ✅ 必须初始化 Board 才能计算距离
+    # 4. 准备 BetaMove 环境
     board = Board(
         rows=int(cfg["board"]["rows"]), 
         cols=int(cfg["board"]["cols"])
     )
-    # ✅ 必须初始化约束条件
     cons = Constraints(
         max_reach=float(cfg["betamove"]["max_reach"]),
         require_monotonic_up=bool(cfg["betamove"]["require_monotonic_up"])
@@ -127,14 +134,12 @@ def main():
 
     logger.info(f"Start generation: grades={grades}, count/grade={samples_per_grade}")
 
-    # ✅ 修复: 修正变量名错误 (as f_ok)
     with out_all.open("w", encoding="utf-8") as f_all, out_ok.open("w", encoding="utf-8") as f_ok:
         for g in grades:
-            # 构造 Prefix: <BOS> + <Gk>
+            # 构造 Prefix
             prefix = [tok.bos_id, tok.vocab[f"<G{g}>"]]
             
             for i in range(samples_per_grade):
-                # ✅ 修复: 直接调用 Model 内部的 generate 方法
                 ids = model.generate(
                     bos=tok.bos_id,
                     eos=tok.eos_id,
@@ -144,46 +149,33 @@ def main():
                     top_k=top_k
                 )
                 
-                toks = tok.decode(ids) # 注意: tokenizer.decode 返回的是 int list 还是 token str list? 
-                # 里的 decode 返回的是 List[int] (hold ids) 还是 List[str]?
-                # 检查你的 tokenizer.py: decode 返回 List[int] (hold ids)，但是 logic 是过滤掉 special token。
-                # ‼️ 重要修正: 
-                # 你的 Tokenizer.decode 实现会将 token ID 转回原始 Hold ID (int)。
-                # 但是 DeepRouteSet 也是作为 Token ID 输出的。
-                # 在 Phase 2 的 preprocess_rawschema.py 中，我们把 hold 变成了 "M_H123" 这种 STRING token。
-                # 所以 tok.ivocab[id] 拿到的是 "M_H123"。
-                
-                # 手动 decode 以获取 raw tokens (因为我们要解析 S_ / F_ 结构)
+                # 解码
                 raw_tokens = [tok.ivocab.get(tid, "") for tid in ids]
-                
-                # 过滤掉 <BOS>, <EOS>, <Gk>, <PAD>
                 route_tokens = [
                     t for t in raw_tokens 
                     if t not in ["<BOS>", "<EOS>", "<PAD>"] and not t.startswith("<G")
                 ]
 
+                # 记录原始生成
                 rec = {"grade": g, "tokens": route_tokens}
                 f_all.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 n_total += 1
 
-                # --- BetaMove Filter ---
-                # 1. 解析 token 为 ID
+                # --- BetaMove Filter (With Robust Parsing) ---
                 start_id, end_id, hold_ids = parse_tokens_to_holds(route_tokens)
                 
                 is_valid = False
-                reason = "parse_fail"
+                reason = "unknown"
 
-                if start_id is not None and end_id is not None and len(hold_ids) >= 2:
-                    # 2. 运行 BetaMove
-                    # ✅ 修复: 使用正确的 run_betamove
+                if start_id is not None and end_id is not None and len(hold_ids) >= 1:
                     bm_res = run_betamove(board, hold_ids, start_id, end_id, cons)
                     if bm_res.success:
                         is_valid = True
-                        rec["seq_betamove"] = bm_res.seq # 保存物理可行序列
+                        rec["seq_betamove"] = bm_res.seq
                     else:
                         reason = bm_res.reason
                 else:
-                    reason = "missing_start_or_end"
+                    reason = "empty_route"
 
                 if is_valid:
                     f_ok.write(json.dumps(rec, ensure_ascii=False) + "\n")
