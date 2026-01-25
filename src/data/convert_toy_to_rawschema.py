@@ -11,27 +11,21 @@ def _infer_id_base(holds: list[int], rows: int, cols: int) -> int:
     Returns base (0 or 1).
     """
     n = rows * cols
+    if not holds:
+        return 0
     mn = min(holds)
     mx = max(holds)
 
-    # If any 0 appears, it's 0-based.
     if mn == 0:
         return 0
-    # If max exceeds n-1 but <= n, likely 1-based.
     if mx == n:
         return 1
-    # If all within 1..n and none is 0, prefer 1-based.
     if 1 <= mn and mx <= n:
         return 1
-    # Fallback: assume 0-based.
     return 0
 
 
 def _id_to_rc(hid: int, base: int, rows: int, cols: int) -> tuple[int, int]:
-    """
-    Map hold id to (r,c) with 0-based r,c.
-    Assumes row-major order: idx = r*cols + c (+ base).
-    """
     idx = hid - base
     r = idx // cols
     c = idx % cols
@@ -51,12 +45,15 @@ def main():
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
 
+    if not inp.exists():
+        print(f"[convert] Input file not found: {inp}")
+        return
+
     lines = inp.read_text(encoding="utf-8").splitlines()
 
     n_in = 0
     n_out = 0
 
-    # Overwrite output file at start
     out.write_text("", encoding="utf-8")
 
     for i, line in enumerate(lines):
@@ -65,46 +62,51 @@ def main():
         n_in += 1
         r = json.loads(line)
 
-        holds_ids = r.get("holds", None)
-        if not isinstance(holds_ids, list) or not holds_ids:
-            continue
-
-        # ensure int list
-        try:
-            holds_ids_int = [int(x) for x in holds_ids]
-        except Exception:
-            continue
-
-        base = _infer_id_base(holds_ids_int, args.rows, args.cols)
-
+        holds_ids = r.get("holds", [])
         start_id = r.get("start", None)
         end_id = r.get("end", None)
-        start_id = int(start_id) if start_id is not None else None
-        end_id = int(end_id) if end_id is not None else None
 
-        holds = []
-        for hid in holds_ids_int:
+        # ✅ 关键修复：合并 start, end 和 holds，确保它们都在处理列表中
+        all_ids = set()
+        if holds_ids:
+            all_ids.update([int(x) for x in holds_ids])
+        
+        # 确保 start 和 end 被加入集合
+        if start_id is not None:
+            all_ids.add(int(start_id))
+        if end_id is not None:
+            all_ids.add(int(end_id))
+
+        if not all_ids:
+            continue
+
+        base = _infer_id_base(list(all_ids), args.rows, args.cols)
+
+        holds_out = []
+        # 转为列表排序，保持稳定性
+        for hid in sorted(list(all_ids)):
             rr, cc = _id_to_rc(hid, base, args.rows, args.cols)
 
-            # bound check: skip invalid
             if rr < 0 or rr >= args.rows or cc < 0 or cc >= args.cols:
                 continue
 
             role = "M"
-            if start_id is not None and hid == start_id:
+            # ✅ 这里的逻辑现在能生效了，因为 start_id 肯定在循环里
+            if start_id is not None and hid == int(start_id):
                 role = "S"
-            if end_id is not None and hid == end_id:
+            elif end_id is not None and hid == int(end_id):
                 role = "F"
-            holds.append({"r": rr, "c": cc, "role": role})
+            
+            holds_out.append({"r": rr, "c": cc, "role": role})
 
-        if not holds:
+        if not holds_out:
             continue
 
         rec = {
             "id": str(r.get("id", f"toy_{i}")),
             "board": args.board,
             "grade": r.get("grade", 0),
-            "holds": holds,
+            "holds": holds_out,
             "source": "toy_routes.jsonl",
         }
 
