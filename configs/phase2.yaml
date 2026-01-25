@@ -22,8 +22,8 @@ data:
 
 
 betamove:
-  max_reach: 20.0          # 原来是 4.5 -> 改大到 20 (允许超长臂展)
-  require_monotonic_up: false  # 原来是 true -> 改为 false (允许乱爬，不一定要向上)
+  max_reach: 6.0           # 恢复正常臂展 (约 1.5格 ~ 2格)
+  require_monotonic_up: true # 恢复强制向上 (真实的攀岩大多是向上的)
 
 training:
   batch_size: 32
