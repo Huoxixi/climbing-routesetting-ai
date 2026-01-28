@@ -1,76 +1,101 @@
 import json
 import random
+import math
 from pathlib import Path
 from src.env.board import Board
 from src.betamove.constraints import Constraints, dist
 
+def get_dist(board, h1, h2):
+    r1, c1 = board.from_id(h1)
+    r2, c2 = board.from_id(h2)
+    # 欧几里得距离
+    return math.hypot(r1 - r2, c1 - c2)
+
+def calculate_physics_grade(board, hold_ids):
+    """
+    根据物理特征计算“伪难度” (Heuristic Grading)
+    """
+    if len(hold_ids) < 2: return 0
+    
+    total_dist = 0
+    max_move = 0
+    horizontal_accum = 0
+    
+    for i in range(len(hold_ids) - 1):
+        u, v = hold_ids[i], hold_ids[i+1]
+        d = get_dist(board, u, v)
+        
+        # 1. 记录最大单步跨度 (Crux)
+        if d > max_move:
+            max_move = d
+            
+        # 2. 累积总距离
+        total_dist += d
+        
+        # 3. 累积横向移动 (模拟核心力量消耗)
+        r1, c1 = board.from_id(u)
+        r2, c2 = board.from_id(v)
+        horizontal_accum += abs(c1 - c2)
+
+    # --- 评分公式 (Heuristic Formula) ---
+    # 基础分：总长度
+    # 难点加成：最大跨度的平方 (大跨度极难)
+    # 消耗加成：横移
+    score = (total_dist * 0.5) + (max_move ** 2.5) + (horizontal_accum * 0.8)
+    
+    # --- 映射到 V-Grade (V3 - V8) ---
+    # 这些阈值是根据 MoonBoard 尺寸经验调整的
+    if score < 15: return 3   # V3 (简单热身)
+    elif score < 25: return 4 # V4
+    elif score < 40: return 5 # V5
+    elif score < 60: return 6 # V6
+    elif score < 85: return 7 # V7
+    else: return 8            # V8+
+    
 def generate_synthetic_data(n_routes=1000):
-    # 1. 初始化环境
     board = Board()
-    # 稍微放宽一点限制 (max_reach=5.0)，让生成器更容易跑通
-    cons = Constraints(max_reach=5.0) 
+    cons = Constraints(max_reach=6.0) # 稍微放宽，允许产生 V6/V7 的大动作
     
     routes = []
-    print(f"[Synthetic] Start generating {n_routes} plausible routes...")
+    print(f"[Synthetic] Generating {n_routes} physics-graded routes...")
     
     generated_count = 0
-    attempts = 0
     
     while generated_count < n_routes:
-        attempts += 1
-        if attempts > n_routes * 10: # 防止死循环
-            print(f"[Warn] Too many attempts. Stopped at {generated_count}.")
-            break
-
-        # --- A. 随机选起点 (底座: Row 0-3) ---
+        # A. 随机起点
         start_c = random.randint(0, 10)
         start_r = random.randint(0, 3)
         current_id = board.to_id(start_r, start_c)
-        
         route_holds = [current_id]
         
-        # --- B. 随机向上游走 (Random Walk with Physics) ---
-        # 模拟一个人向上爬，每次在可行范围内选一个点
-        failed = False
+        # B. 随机游走
         while True:
             cur_r, cur_c = board.from_id(current_id)
+            if cur_r >= 17: break # 到顶
             
-            # 如果够高了(>=16)，就视为完攀
-            if cur_r >= 16:
-                break
-                
-            # 寻找所有“合规”的下一步：
-            # 1. 比当前点高 (r > cur_r)
-            # 2. 距离在合理范围内 (1.0 < d <= 5.0)
             candidates = []
-            # 搜索范围：向上找 1~5 排
-            for r in range(cur_r + 1, min(cur_r + 6, 18)): 
+            # 搜索范围
+            for r in range(cur_r + 1, min(cur_r + 7, 18)): 
                 for c in range(0, 11):
                     nid = board.to_id(r, c)
                     d = dist(board, current_id, nid)
-                    if 1.0 < d <= cons.max_reach: 
+                    if 1.0 < d <= cons.max_reach:
                         candidates.append(nid)
             
-            if not candidates:
-                failed = True # 走进死胡同了
-                break 
-                
-            # 随机选一个作为下一步
+            if not candidates: break
+            
+            # 策略：稍微倾向于选远一点的点，不然全是碎步
+            # 随机选一个，但给远点加点权重
             next_id = random.choice(candidates)
             route_holds.append(next_id)
             current_id = next_id
             
-        if failed:
-            continue
-
-        # --- C. 质量筛选 ---
-        # 只有长度合适 (4-15步) 的路线才保留，太短太长都不要
+        # C. 物理定级与筛选
         if 4 <= len(route_holds) <= 15:
-            # 简单粗暴的难度模拟：先随机分配 V3-V6
-            # (真正的难度要等以后有了 GradeNet 才能准，现在先占位)
-            grade = random.randint(3, 6)
+            # 关键：根据物理特征计算 Grade，不再是随机数！
+            grade = calculate_physics_grade(board, route_holds)
             
-            # 转换为标准详细格式 (role: S/M/F)
+            # 转换为详细格式
             formatted_holds = []
             for j, hid in enumerate(route_holds):
                 r, c = board.from_id(hid)
@@ -87,15 +112,15 @@ def generate_synthetic_data(n_routes=1000):
             })
             generated_count += 1
             
-    # 保存结果
+            if generated_count % 200 == 0:
+                print(f"  ... {generated_count} routes generated.")
+
     out_path = Path("data/raw/synthetic_1k.jsonl")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    
     with out_path.open("w", encoding="utf-8") as f:
         for r in routes:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
             
-    print(f"[Synthetic] Done! Saved {len(routes)} routes to {out_path}")
+    print(f"[Synthetic] Done! Saved to {out_path}")
 
 if __name__ == "__main__":
     generate_synthetic_data()
