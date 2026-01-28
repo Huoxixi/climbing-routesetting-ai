@@ -25,16 +25,20 @@ betamove:
   max_reach: 6.0           # 恢复正常臂展 (约 1.5格 ~ 2格)
   require_monotonic_up: true # 恢复强制向上 (真实的攀岩大多是向上的)
 
+# ... (前部分保持不变) ...
+
 training:
-  batch_size: 32
-  lr: 0.001
-  epochs: 5
+  batch_size: 64      # 增大 batch_size (原 32)，让梯度更稳定
+  lr: 0.001           # 学习率保持
+  epochs: 30          # 增加训练轮数 (原 5)，让模型充分消化 1000 条数据
   num_workers: 0
 
 model:
-  embed_dim: 64
-  hidden_dim: 128
-  num_layers: 1
+  embed_dim: 128      # 翻倍 (原 64)，提升表达能力
+  hidden_dim: 256     # 翻倍 (原 128)，提升记忆容量
+  num_layers: 2       # 加深 (原 1)，学习更复杂的序列关系
+
+# ... (后部分保持不变) ...
 
 generation:
   samples_per_grade: 50
