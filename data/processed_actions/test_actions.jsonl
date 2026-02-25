@@ -1,0 +1,120 @@
+{"id": "syn_890", "grade": 5, "raw_seq": ["S_H37", "M_H81", "M_H125", "M_H180", "F_H190"], "action_seq": ["START_H37", "LOCK_R+4_C+0", "LOCK_R+4_C+0", "DYNO_R+5_C+0", "MOVE_R+1_C-1"]}
+{"id": "syn_601", "grade": 5, "raw_seq": ["S_H15", "M_H58", "M_H81", "M_H126", "M_H171", "F_H197"], "action_seq": ["START_H15", "MOVE_R+4_C-1", "MOVE_R+2_C+1", "MOVE_R+4_C+1", "MOVE_R+4_C+1", "MOVE_R+2_C+4"]}
+{"id": "syn_1199", "grade": 4, "raw_seq": ["S_H40", "M_H61", "M_H93", "M_H116", "M_H148", "F_H180"], "action_seq": ["START_H40", "MOVE_R+2_C-1", "MOVE_R+3_C-1", "MOVE_R+2_C+1", "MOVE_R+3_C-1", "MOVE_R+3_C-1"]}
+{"id": "syn_1172", "grade": 6, "raw_seq": ["S_H41", "M_H75", "M_H115", "M_H173", "F_H191"], "action_seq": ["START_H41", "MOVE_R+3_C+1", "DYNO_R+4_C-4", "DYNO_R+5_C+3", "MOVE_R+2_C-4"]}
+{"id": "syn_1135", "grade": 4, "raw_seq": ["S_H27", "M_H60", "M_H82", "M_H116", "M_H150", "F_H182"], "action_seq": ["START_H27", "LOCK_R+3_C+0", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+3_C+1", "MOVE_R+3_C-1"]}
+{"id": "syn_234", "grade": 5, "raw_seq": ["S_H22", "M_H55", "M_H70", "M_H104", "M_H146", "F_H179"], "action_seq": ["START_H22", "LOCK_R+3_C+0", "CROSS_R+1_C+4", "MOVE_R+3_C+1", "MOVE_R+4_C-2", "LOCK_R+3_C+0"]}
+{"id": "syn_23", "grade": 4, "raw_seq": ["S_H23", "M_H45", "M_H79", "M_H114", "M_H127", "F_H151"], "action_seq": ["START_H23", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+3_C+2", "MOVE_R+1_C+2", "MOVE_R+2_C+2"]}
+{"id": "syn_514", "grade": 3, "raw_seq": ["S_H40", "M_H49", "M_H58", "M_H80", "F_H90"], "action_seq": ["START_H40", "MOVE_R+1_C-2", "MOVE_R+1_C-2", "MOVE_R+2_C+0", "MOVE_R+1_C-1"]}
+{"id": "syn_1083", "grade": 5, "raw_seq": ["S_H20", "M_H53", "M_H72", "M_H114", "M_H148", "F_H192"], "action_seq": ["START_H20", "LOCK_R+3_C+0", "MOVE_R+2_C-3", "MOVE_R+4_C-2", "MOVE_R+3_C+1", "LOCK_R+4_C+0"]}
+{"id": "syn_958", "grade": 5, "raw_seq": ["S_H20", "M_H62", "M_H92", "M_H136", "M_H169", "F_H187"], "action_seq": ["START_H20", "MOVE_R+4_C-2", "MOVE_R+3_C-3", "LOCK_R+4_C+0", "LOCK_R+3_C+0", "MOVE_R+2_C-4"]}
+{"id": "syn_781", "grade": 3, "raw_seq": ["S_H37", "M_H59", "M_H68", "M_H89", "F_H99"], "action_seq": ["START_H37", "MOVE_R+2_C+0", "MOVE_R+1_C-2", "MOVE_R+2_C-1", "MOVE_R+1_C-1"]}
+{"id": "syn_788", "grade": 4, "raw_seq": ["S_H38", "M_H82", "M_H126", "F_H145"], "action_seq": ["START_H38", "LOCK_R+4_C+0", "LOCK_R+4_C+0", "MOVE_R+2_C-3"]}
+{"id": "syn_130", "grade": 4, "raw_seq": ["S_H9", "M_H42", "M_H74", "F_H93"], "action_seq": ["START_H9", "LOCK_R+3_C+0", "MOVE_R+3_C-1", "MOVE_R+2_C-3"]}
+{"id": "syn_1190", "grade": 5, "raw_seq": ["S_H18", "M_H51", "M_H93", "M_H125", "F_H170"], "action_seq": ["START_H18", "LOCK_R+3_C+0", "MOVE_R+4_C-2", "MOVE_R+3_C-1", "MOVE_R+4_C+1"]}
+{"id": "syn_327", "grade": 5, "raw_seq": ["S_H20", "M_H38", "M_H82", "M_H115", "M_H123", "F_H167"], "action_seq": ["START_H20", "MOVE_R+2_C-4", "LOCK_R+4_C+0", "LOCK_R+3_C+0", "CROSS_R+1_C-3", "LOCK_R+4_C+0"]}
+{"id": "syn_313", "grade": 3, "raw_seq": ["S_H34", "M_H56", "M_H90", "F_H114"], "action_seq": ["START_H34", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+2_C+2"]}
+{"id": "syn_224", "grade": 6, "raw_seq": ["S_H39", "M_H83", "M_H127", "M_H144", "F_H191"], "action_seq": ["START_H39", "LOCK_R+4_C+0", "LOCK_R+4_C+0", "DYNO_R+2_C-5", "DYNO_R+4_C+3"]}
+{"id": "syn_96", "grade": 6, "raw_seq": ["S_H32", "M_H71", "M_H117", "M_H170", "F_H197"], "action_seq": ["START_H32", "DYNO_R+4_C-5", "MOVE_R+4_C+2", "DYNO_R+5_C-2", "DYNO_R+2_C+5"]}
+{"id": "syn_186", "grade": 5, "raw_seq": ["S_H35", "M_H77", "M_H110", "M_H145", "M_H177", "F_H187"], "action_seq": ["START_H35", "MOVE_R+4_C-2", "LOCK_R+3_C+0", "MOVE_R+3_C+2", "MOVE_R+3_C-1", "MOVE_R+1_C-1"]}
+{"id": "syn_1010", "grade": 4, "raw_seq": ["S_H9", "M_H41", "M_H75", "M_H106", "F_H131"], "action_seq": ["START_H9", "MOVE_R+3_C-1", "MOVE_R+3_C+1", "MOVE_R+3_C-2", "MOVE_R+2_C+3"]}
+{"id": "syn_1043", "grade": 5, "raw_seq": ["S_H16", "M_H60", "M_H105", "M_H147", "M_H183", "F_H193"], "action_seq": ["START_H16", "LOCK_R+4_C+0", "MOVE_R+4_C+1", "MOVE_R+4_C-2", "MOVE_R+3_C+3", "MOVE_R+1_C-1"]}
+{"id": "syn_283", "grade": 5, "raw_seq": ["S_H29", "M_H64", "M_H82", "M_H125", "M_H168", "F_H192"], "action_seq": ["START_H29", "MOVE_R+3_C+2", "MOVE_R+2_C-4", "MOVE_R+4_C-1", "MOVE_R+4_C-1", "MOVE_R+2_C+2"]}
+{"id": "syn_1126", "grade": 4, "raw_seq": ["S_H21", "M_H52", "M_H86", "M_H119", "F_H141"], "action_seq": ["START_H21", "MOVE_R+3_C-2", "MOVE_R+3_C+1", "LOCK_R+3_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_741", "grade": 6, "raw_seq": ["S_H32", "M_H71", "M_H127", "M_H178", "F_H195"], "action_seq": ["START_H32", "DYNO_R+4_C-5", "DYNO_R+5_C+1", "DYNO_R+5_C-4", "DYNO_R+1_C+6"]}
+{"id": "syn_817", "grade": 3, "raw_seq": ["S_H7", "M_H39", "M_H60", "F_H92"], "action_seq": ["START_H7", "MOVE_R+3_C-1", "MOVE_R+2_C-1", "MOVE_R+3_C-1"]}
+{"id": "syn_877", "grade": 3, "raw_seq": ["S_H24", "M_H56", "M_H78", "M_H100", "M_H122", "F_H144"], "action_seq": ["START_H24", "MOVE_R+3_C-1", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_538", "grade": 5, "raw_seq": ["S_H38", "M_H72", "M_H115", "M_H150", "M_H185", "F_H195"], "action_seq": ["START_H38", "MOVE_R+3_C+1", "MOVE_R+4_C-1", "MOVE_R+3_C+2", "MOVE_R+3_C+2", "MOVE_R+1_C-1"]}
+{"id": "syn_1103", "grade": 4, "raw_seq": ["S_H39", "M_H73", "M_H105", "M_H139", "M_H160", "F_H193"], "action_seq": ["START_H39", "MOVE_R+3_C+1", "MOVE_R+3_C-1", "MOVE_R+3_C+1", "MOVE_R+2_C-1", "LOCK_R+3_C+0"]}
+{"id": "syn_505", "grade": 3, "raw_seq": ["S_H41", "M_H61", "M_H82", "F_H94"], "action_seq": ["START_H41", "MOVE_R+2_C-2", "MOVE_R+2_C-1", "MOVE_R+1_C+1"]}
+{"id": "syn_1194", "grade": 4, "raw_seq": ["S_H34", "M_H56", "M_H89", "M_H121", "M_H156", "F_H177"], "action_seq": ["START_H34", "MOVE_R+2_C+0", "LOCK_R+3_C+0", "MOVE_R+3_C-1", "MOVE_R+3_C+2", "MOVE_R+2_C-1"]}
+{"id": "syn_542", "grade": 4, "raw_seq": ["S_H9", "M_H40", "M_H71", "M_H79", "F_H113"], "action_seq": ["START_H9", "MOVE_R+3_C-2", "MOVE_R+3_C-2", "CROSS_R+1_C-3", "MOVE_R+3_C+1"]}
+{"id": "syn_292", "grade": 6, "raw_seq": ["S_H42", "M_H75", "M_H115", "M_H170", "F_H188"], "action_seq": ["START_H42", "LOCK_R+3_C+0", "DYNO_R+4_C-4", "DYNO_R+5_C+0", "MOVE_R+2_C-4"]}
+{"id": "syn_939", "grade": 4, "raw_seq": ["S_H10", "M_H41", "M_H74", "M_H95", "M_H114", "F_H135"], "action_seq": ["START_H10", "MOVE_R+3_C-2", "LOCK_R+3_C+0", "MOVE_R+2_C-1", "MOVE_R+2_C-3", "MOVE_R+2_C-1"]}
+{"id": "syn_810", "grade": 5, "raw_seq": ["S_H40", "M_H86", "M_H109", "M_H151", "F_H197"], "action_seq": ["START_H40", "MOVE_R+4_C+2", "MOVE_R+2_C+1", "MOVE_R+4_C-2", "MOVE_R+4_C+2"]}
+{"id": "syn_1022", "grade": 4, "raw_seq": ["S_H17", "M_H41", "M_H75", "M_H95", "F_H129"], "action_seq": ["START_H17", "MOVE_R+2_C+2", "MOVE_R+3_C+1", "MOVE_R+2_C-2", "MOVE_R+3_C+1"]}
+{"id": "syn_435", "grade": 4, "raw_seq": ["S_H27", "M_H58", "M_H92", "M_H111", "F_H146"], "action_seq": ["START_H27", "MOVE_R+3_C-2", "MOVE_R+3_C+1", "MOVE_R+2_C-3", "MOVE_R+3_C+2"]}
+{"id": "syn_644", "grade": 6, "raw_seq": ["S_H16", "M_H82", "M_H131", "M_H182", "F_H187"], "action_seq": ["START_H16", "DYNO_R+6_C+0", "DYNO_R+4_C+5", "DYNO_R+5_C-4", "DYNO_R+1_C-6"]}
+{"id": "syn_432", "grade": 5, "raw_seq": ["S_H39", "M_H85", "M_H116", "M_H149", "F_H192"], "action_seq": ["START_H39", "MOVE_R+4_C+2", "MOVE_R+3_C-2", "LOCK_R+3_C+0", "MOVE_R+4_C-1"]}
+{"id": "syn_135", "grade": 5, "raw_seq": ["S_H29", "M_H62", "M_H106", "M_H136", "M_H169", "F_H187"], "action_seq": ["START_H29", "LOCK_R+3_C+0", "LOCK_R+4_C+0", "MOVE_R+3_C-3", "LOCK_R+3_C+0", "MOVE_R+2_C-4"]}
+{"id": "syn_548", "grade": 5, "raw_seq": ["S_H25", "M_H69", "M_H102", "M_H135", "M_H180", "F_H187"], "action_seq": ["START_H25", "LOCK_R+4_C+0", "LOCK_R+3_C+0", "LOCK_R+3_C+0", "MOVE_R+4_C+1", "CROSS_R+1_C-4"]}
+{"id": "syn_821", "grade": 3, "raw_seq": ["S_H43", "M_H63", "M_H72", "M_H94", "F_H106"], "action_seq": ["START_H43", "MOVE_R+2_C-2", "MOVE_R+1_C-2", "MOVE_R+2_C+0", "MOVE_R+1_C+1"]}
+{"id": "syn_646", "grade": 5, "raw_seq": ["S_H11", "M_H34", "M_H79", "M_H123", "M_H147", "F_H178"], "action_seq": ["START_H11", "MOVE_R+2_C+1", "MOVE_R+4_C+1", "LOCK_R+4_C+0", "MOVE_R+2_C+2", "MOVE_R+3_C-2"]}
+{"id": "syn_1189", "grade": 3, "raw_seq": ["S_H36", "M_H58", "M_H92", "F_H102"], "action_seq": ["START_H36", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+1_C-1"]}
+{"id": "syn_469", "grade": 3, "raw_seq": ["S_H12", "M_H46", "M_H78", "F_H100"], "action_seq": ["START_H12", "MOVE_R+3_C+1", "MOVE_R+3_C-1", "MOVE_R+2_C+0"]}
+{"id": "syn_114", "grade": 4, "raw_seq": ["S_H8", "M_H40", "M_H75", "M_H96", "F_H130"], "action_seq": ["START_H8", "MOVE_R+3_C-1", "MOVE_R+3_C+2", "MOVE_R+2_C-1", "MOVE_R+3_C+1"]}
+{"id": "syn_664", "grade": 6, "raw_seq": ["S_H26", "M_H79", "M_H106", "M_H141", "F_H196"], "action_seq": ["START_H26", "DYNO_R+5_C-2", "DYNO_R+2_C+5", "MOVE_R+3_C+2", "DYNO_R+5_C+0"]}
+{"id": "syn_449", "grade": 5, "raw_seq": ["S_H25", "M_H71", "M_H103", "M_H149", "F_H193"], "action_seq": ["START_H25", "MOVE_R+4_C+2", "MOVE_R+3_C-1", "MOVE_R+4_C+2", "LOCK_R+4_C+0"]}
+{"id": "syn_552", "grade": 3, "raw_seq": ["S_H23", "M_H47", "M_H69", "M_H91", "M_H112", "F_H124"], "action_seq": ["START_H23", "MOVE_R+2_C+2", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+2_C-1", "MOVE_R+1_C+1"]}
+{"id": "syn_777", "grade": 3, "raw_seq": ["S_H9", "M_H43", "M_H75", "M_H97", "F_H119"], "action_seq": ["START_H9", "MOVE_R+3_C+1", "MOVE_R+3_C-1", "MOVE_R+2_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_946", "grade": 4, "raw_seq": ["S_H12", "M_H46", "M_H78", "M_H111", "M_H144", "M_H158", "F_H191"], "action_seq": ["START_H12", "MOVE_R+3_C+1", "MOVE_R+3_C-1", "LOCK_R+3_C+0", "LOCK_R+3_C+0", "CROSS_R+1_C+3", "LOCK_R+3_C+0"]}
+{"id": "syn_334", "grade": 3, "raw_seq": ["S_H21", "M_H41", "M_H62", "M_H72", "F_H81"], "action_seq": ["START_H21", "MOVE_R+2_C-2", "MOVE_R+2_C-1", "MOVE_R+1_C-1", "MOVE_R+1_C-2"]}
+{"id": "syn_1196", "grade": 6, "raw_seq": ["S_H37", "M_H96", "M_H149", "F_H188"], "action_seq": ["START_H37", "DYNO_R+5_C+4", "DYNO_R+5_C-2", "DYNO_R+4_C-5"]}
+{"id": "syn_1093", "grade": 3, "raw_seq": ["S_H11", "M_H33", "M_H67", "M_H101", "F_H123"], "action_seq": ["START_H11", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+3_C+1", "MOVE_R+2_C+0"]}
+{"id": "syn_350", "grade": 4, "raw_seq": ["S_H20", "M_H54", "M_H87", "M_H96", "M_H128", "M_H162", "F_H195"], "action_seq": ["START_H20", "MOVE_R+3_C+1", "LOCK_R+3_C+0", "MOVE_R+1_C-2", "MOVE_R+3_C-1", "MOVE_R+3_C+1", "LOCK_R+3_C+0"]}
+{"id": "syn_146", "grade": 4, "raw_seq": ["S_H18", "M_H51", "M_H75", "M_H109", "M_H141", "M_H174", "F_H183"], "action_seq": ["START_H18", "LOCK_R+3_C+0", "MOVE_R+2_C+2", "MOVE_R+3_C+1", "MOVE_R+3_C-1", "LOCK_R+3_C+0", "MOVE_R+1_C-2"]}
+{"id": "syn_546", "grade": 3, "raw_seq": ["S_H29", "M_H61", "M_H95", "F_H105"], "action_seq": ["START_H29", "MOVE_R+3_C-1", "MOVE_R+3_C+1", "MOVE_R+1_C-1"]}
+{"id": "syn_429", "grade": 3, "raw_seq": ["S_H24", "M_H44", "M_H78", "F_H100"], "action_seq": ["START_H24", "MOVE_R+2_C-2", "MOVE_R+3_C+1", "MOVE_R+2_C+0"]}
+{"id": "syn_727", "grade": 5, "raw_seq": ["S_H13", "M_H58", "M_H101", "M_H136", "F_H172"], "action_seq": ["START_H13", "MOVE_R+4_C+1", "MOVE_R+4_C-1", "MOVE_R+3_C+2", "MOVE_R+3_C+3"]}
+{"id": "syn_758", "grade": 5, "raw_seq": ["S_H12", "M_H33", "M_H79", "M_H123", "M_H169", "F_H184"], "action_seq": ["START_H12", "MOVE_R+2_C-1", "MOVE_R+4_C+2", "LOCK_R+4_C+0", "MOVE_R+4_C+2", "CROSS_R+1_C+4"]}
+{"id": "syn_333", "grade": 4, "raw_seq": ["S_H33", "M_H56", "M_H90", "M_H123", "F_H143"], "action_seq": ["START_H33", "MOVE_R+2_C+1", "MOVE_R+3_C+1", "LOCK_R+3_C+0", "MOVE_R+2_C-2"]}
+{"id": "syn_747", "grade": 5, "raw_seq": ["S_H2", "M_H38", "M_H83", "M_H103", "M_H146", "F_H192"], "action_seq": ["START_H2", "MOVE_R+3_C+3", "MOVE_R+4_C+1", "MOVE_R+2_C-2", "MOVE_R+4_C-1", "MOVE_R+4_C+2"]}
+{"id": "syn_928", "grade": 6, "raw_seq": ["S_H34", "M_H77", "M_H126", "M_H182", "F_H188"], "action_seq": ["START_H34", "MOVE_R+4_C-1", "DYNO_R+4_C+5", "DYNO_R+5_C+1", "DYNO_R+1_C-5"]}
+{"id": "syn_1171", "grade": 5, "raw_seq": ["S_H24", "M_H49", "M_H92", "M_H117", "M_H161", "F_H194"], "action_seq": ["START_H24", "MOVE_R+2_C+3", "MOVE_R+4_C-1", "MOVE_R+2_C+3", "LOCK_R+4_C+0", "LOCK_R+3_C+0"]}
+{"id": "syn_1165", "grade": 3, "raw_seq": ["S_H29", "M_H38", "M_H60", "M_H82", "M_H91", "M_H112", "F_H121"], "action_seq": ["START_H29", "MOVE_R+1_C-2", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+1_C-2", "MOVE_R+2_C-1", "MOVE_R+1_C-2"]}
+{"id": "syn_206", "grade": 4, "raw_seq": ["S_H2", "M_H37", "M_H72", "M_H107", "F_H130"], "action_seq": ["START_H2", "MOVE_R+3_C+2", "MOVE_R+3_C+2", "MOVE_R+3_C+2", "MOVE_R+2_C+1"]}
+{"id": "syn_1185", "grade": 6, "raw_seq": ["S_H0", "M_H58", "M_H110", "M_H158", "F_H191"], "action_seq": ["START_H0", "DYNO_R+5_C+3", "DYNO_R+5_C-3", "DYNO_R+4_C+4", "LOCK_R+3_C+0"]}
+{"id": "syn_163", "grade": 5, "raw_seq": ["S_H17", "M_H50", "M_H69", "M_H115", "M_H160", "F_H170"], "action_seq": ["START_H17", "LOCK_R+3_C+0", "MOVE_R+2_C-3", "MOVE_R+4_C+2", "MOVE_R+4_C+1", "MOVE_R+1_C-1"]}
+{"id": "syn_592", "grade": 6, "raw_seq": ["S_H1", "M_H45", "M_H72", "M_H124", "M_H178", "F_H194"], "action_seq": ["START_H1", "LOCK_R+4_C+0", "DYNO_R+2_C+5", "DYNO_R+5_C-3", "DYNO_R+5_C-1", "DYNO_R+1_C+5"]}
+{"id": "syn_466", "grade": 5, "raw_seq": ["S_H18", "M_H40", "M_H84", "M_H105", "M_H149", "F_H195"], "action_seq": ["START_H18", "MOVE_R+2_C+0", "LOCK_R+4_C+0", "MOVE_R+2_C-1", "LOCK_R+4_C+0", "MOVE_R+4_C+2"]}
+{"id": "syn_93", "grade": 5, "raw_seq": ["S_H13", "M_H58", "M_H83", "M_H116", "M_H150", "F_H160"], "action_seq": ["START_H13", "MOVE_R+4_C+1", "MOVE_R+2_C+3", "LOCK_R+3_C+0", "MOVE_R+3_C+1", "MOVE_R+1_C-1"]}
+{"id": "syn_142", "grade": 4, "raw_seq": ["S_H16", "M_H51", "M_H73", "M_H106", "M_H127", "F_H135"], "action_seq": ["START_H16", "MOVE_R+3_C+2", "MOVE_R+2_C+0", "LOCK_R+3_C+0", "MOVE_R+2_C-1", "CROSS_R+1_C-3"]}
+{"id": "syn_393", "grade": 3, "raw_seq": ["S_H20", "M_H54", "M_H74", "F_H96"], "action_seq": ["START_H20", "MOVE_R+3_C+1", "MOVE_R+2_C-2", "MOVE_R+2_C+0"]}
+{"id": "syn_740", "grade": 3, "raw_seq": ["S_H29", "M_H51", "M_H60", "M_H80", "F_H89"], "action_seq": ["START_H29", "MOVE_R+2_C+0", "MOVE_R+1_C-2", "MOVE_R+2_C-2", "MOVE_R+1_C-2"]}
+{"id": "syn_600", "grade": 6, "raw_seq": ["S_H5", "M_H64", "M_H120", "M_H162", "F_H194"], "action_seq": ["START_H5", "DYNO_R+5_C+4", "DYNO_R+5_C+1", "MOVE_R+4_C-2", "MOVE_R+3_C-1"]}
+{"id": "syn_1130", "grade": 5, "raw_seq": ["S_H35", "M_H67", "M_H110", "M_H154", "F_H188"], "action_seq": ["START_H35", "MOVE_R+3_C-1", "MOVE_R+4_C-1", "LOCK_R+4_C+0", "MOVE_R+3_C+1"]}
+{"id": "syn_161", "grade": 3, "raw_seq": ["S_H29", "M_H39", "M_H48", "M_H70", "M_H92", "M_H101", "F_H123"], "action_seq": ["START_H29", "MOVE_R+1_C-1", "MOVE_R+1_C-2", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+1_C-2", "MOVE_R+2_C+0"]}
+{"id": "syn_775", "grade": 5, "raw_seq": ["S_H24", "M_H68", "M_H111", "M_H147", "F_H189"], "action_seq": ["START_H24", "LOCK_R+4_C+0", "MOVE_R+4_C-1", "MOVE_R+3_C+3", "MOVE_R+4_C-2"]}
+{"id": "syn_255", "grade": 5, "raw_seq": ["S_H43", "M_H87", "M_H119", "M_H161", "F_H191"], "action_seq": ["START_H43", "LOCK_R+4_C+0", "MOVE_R+3_C-1", "MOVE_R+4_C-2", "MOVE_R+3_C-3"]}
+{"id": "syn_1098", "grade": 5, "raw_seq": ["S_H8", "M_H31", "M_H63", "M_H83", "M_H127", "M_H148", "F_H193"], "action_seq": ["START_H8", "MOVE_R+2_C+1", "MOVE_R+3_C-1", "MOVE_R+2_C-2", "LOCK_R+4_C+0", "MOVE_R+2_C-1", "MOVE_R+4_C+1"]}
+{"id": "syn_940", "grade": 3, "raw_seq": ["S_H19", "M_H40", "M_H74", "F_H96"], "action_seq": ["START_H19", "MOVE_R+2_C-1", "MOVE_R+3_C+1", "MOVE_R+2_C+0"]}
+{"id": "syn_88", "grade": 6, "raw_seq": ["S_H36", "M_H93", "M_H135", "M_H169", "F_H191"], "action_seq": ["START_H36", "DYNO_R+5_C+2", "MOVE_R+4_C-2", "MOVE_R+3_C+1", "MOVE_R+2_C+0"]}
+{"id": "syn_541", "grade": 3, "raw_seq": ["S_H15", "M_H36", "M_H57", "F_H79"], "action_seq": ["START_H15", "MOVE_R+2_C-1", "MOVE_R+2_C-1", "MOVE_R+2_C+0"]}
+{"id": "syn_704", "grade": 3, "raw_seq": ["S_H2", "M_H23", "M_H45", "F_H67"], "action_seq": ["START_H2", "MOVE_R+2_C-1", "MOVE_R+2_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_735", "grade": 4, "raw_seq": ["S_H22", "M_H47", "M_H80", "M_H94", "F_H128"], "action_seq": ["START_H22", "MOVE_R+2_C+3", "LOCK_R+3_C+0", "CROSS_R+1_C+3", "MOVE_R+3_C+1"]}
+{"id": "syn_198", "grade": 5, "raw_seq": ["S_H39", "M_H81", "M_H127", "M_H170", "F_H191"], "action_seq": ["START_H39", "MOVE_R+4_C-2", "MOVE_R+4_C+2", "MOVE_R+4_C-1", "MOVE_R+2_C-1"]}
+{"id": "syn_778", "grade": 4, "raw_seq": ["S_H40", "M_H54", "M_H87", "M_H108", "M_H140", "F_H161"], "action_seq": ["START_H40", "CROSS_R+1_C+3", "LOCK_R+3_C+0", "MOVE_R+2_C-1", "MOVE_R+3_C-1", "MOVE_R+2_C-1"]}
+{"id": "syn_189", "grade": 3, "raw_seq": ["S_H40", "M_H50", "M_H59", "M_H80", "F_H90"], "action_seq": ["START_H40", "MOVE_R+1_C-1", "MOVE_R+1_C-2", "MOVE_R+2_C-1", "MOVE_R+1_C-1"]}
+{"id": "syn_1193", "grade": 3, "raw_seq": ["S_H21", "M_H43", "M_H65", "F_H87"], "action_seq": ["START_H21", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_689", "grade": 3, "raw_seq": ["S_H29", "M_H61", "M_H83", "M_H105", "F_H127"], "action_seq": ["START_H29", "MOVE_R+3_C-1", "MOVE_R+2_C+0", "MOVE_R+2_C+0", "MOVE_R+2_C+0"]}
+{"id": "syn_440", "grade": 6, "raw_seq": ["S_H8", "M_H62", "M_H129", "M_H151", "F_H194"], "action_seq": ["START_H8", "DYNO_R+5_C-1", "DYNO_R+6_C+1", "MOVE_R+2_C+0", "MOVE_R+4_C-1"]}
+{"id": "syn_318", "grade": 4, "raw_seq": ["S_H26", "M_H58", "M_H91", "F_H136"], "action_seq": ["START_H26", "MOVE_R+3_C-1", "LOCK_R+3_C+0", "MOVE_R+4_C+1"]}
+{"id": "syn_1176", "grade": 3, "raw_seq": ["S_H1", "M_H25", "M_H46", "F_H67"], "action_seq": ["START_H1", "MOVE_R+2_C+2", "MOVE_R+2_C-1", "MOVE_R+2_C-1"]}
+{"id": "syn_696", "grade": 6, "raw_seq": ["S_H3", "M_H56", "M_H91", "M_H148", "M_H169", "F_H190"], "action_seq": ["START_H3", "DYNO_R+5_C-2", "MOVE_R+3_C+2", "DYNO_R+5_C+2", "MOVE_R+2_C-1", "MOVE_R+2_C-1"]}
+{"id": "syn_865", "grade": 6, "raw_seq": ["S_H27", "M_H86", "M_H108", "M_H160", "M_H184", "F_H190"], "action_seq": ["START_H27", "DYNO_R+5_C+4", "MOVE_R+2_C+0", "DYNO_R+5_C-3", "MOVE_R+2_C+2", "DYNO_R+1_C-5"]}
+{"id": "syn_326", "grade": 4, "raw_seq": ["S_H37", "M_H81", "M_H103", "M_H136", "F_H159"], "action_seq": ["START_H37", "LOCK_R+4_C+0", "MOVE_R+2_C+0", "LOCK_R+3_C+0", "MOVE_R+2_C+1"]}
+{"id": "syn_13", "grade": 6, "raw_seq": ["S_H26", "M_H66", "M_H112", "M_H129", "F_H197"], "action_seq": ["START_H26", "DYNO_R+4_C-4", "MOVE_R+4_C+2", "DYNO_R+1_C+6", "DYNO_R+6_C+2"]}
+{"id": "syn_569", "grade": 5, "raw_seq": ["S_H42", "M_H75", "M_H120", "M_H150", "F_H192"], "action_seq": ["START_H42", "LOCK_R+3_C+0", "MOVE_R+4_C+1", "MOVE_R+3_C-3", "MOVE_R+4_C-2"]}
+{"id": "syn_919", "grade": 5, "raw_seq": ["S_H41", "M_H71", "M_H89", "M_H135", "M_H168", "F_H188"], "action_seq": ["START_H41", "MOVE_R+3_C-3", "MOVE_R+2_C-4", "MOVE_R+4_C+2", "LOCK_R+3_C+0", "MOVE_R+2_C-2"]}
+{"id": "syn_451", "grade": 4, "raw_seq": ["S_H31", "M_H63", "M_H72", "M_H93", "F_H128"], "action_seq": ["START_H31", "MOVE_R+3_C-1", "MOVE_R+1_C-2", "MOVE_R+2_C-1", "MOVE_R+3_C+2"]}
+{"id": "syn_859", "grade": 4, "raw_seq": ["S_H19", "M_H42", "M_H73", "M_H93", "F_H127"], "action_seq": ["START_H19", "MOVE_R+2_C+1", "MOVE_R+3_C-2", "MOVE_R+2_C-2", "MOVE_R+3_C+1"]}
+{"id": "syn_1192", "grade": 6, "raw_seq": ["S_H24", "M_H80", "M_H125", "M_H162", "F_H196"], "action_seq": ["START_H24", "DYNO_R+5_C+1", "MOVE_R+4_C+1", "DYNO_R+3_C+4", "MOVE_R+3_C+1"]}
+{"id": "syn_407", "grade": 5, "raw_seq": ["S_H42", "M_H76", "M_H109", "M_H151", "F_H197"], "action_seq": ["START_H42", "MOVE_R+3_C+1", "LOCK_R+3_C+0", "MOVE_R+4_C-2", "MOVE_R+4_C+2"]}
+{"id": "syn_1149", "grade": 3, "raw_seq": ["S_H0", "M_H24", "M_H45", "F_H57"], "action_seq": ["START_H0", "MOVE_R+2_C+2", "MOVE_R+2_C-1", "MOVE_R+1_C+1"]}
+{"id": "syn_54", "grade": 4, "raw_seq": ["S_H12", "M_H26", "M_H51", "M_H82", "F_H115"], "action_seq": ["START_H12", "CROSS_R+1_C+3", "MOVE_R+2_C+3", "MOVE_R+3_C-2", "LOCK_R+3_C+0"]}
+{"id": "syn_1034", "grade": 4, "raw_seq": ["S_H0", "M_H24", "M_H58", "M_H82", "F_H104"], "action_seq": ["START_H0", "MOVE_R+2_C+2", "MOVE_R+3_C+1", "MOVE_R+2_C+2", "MOVE_R+2_C+0"]}
+{"id": "syn_476", "grade": 6, "raw_seq": ["S_H6", "M_H70", "M_H126", "M_H160", "F_H189"], "action_seq": ["START_H6", "DYNO_R+6_C-2", "DYNO_R+5_C+1", "MOVE_R+3_C+1", "DYNO_R+3_C-4"]}
+{"id": "syn_447", "grade": 5, "raw_seq": ["S_H4", "M_H34", "M_H67", "M_H111", "M_H145", "F_H187"], "action_seq": ["START_H4", "MOVE_R+3_C-3", "LOCK_R+3_C+0", "LOCK_R+4_C+0", "MOVE_R+3_C+1", "MOVE_R+4_C-2"]}
+{"id": "syn_191", "grade": 4, "raw_seq": ["S_H40", "M_H72", "M_H92", "M_H123", "F_H132"], "action_seq": ["START_H40", "MOVE_R+3_C-1", "MOVE_R+2_C-2", "MOVE_R+3_C-2", "MOVE_R+1_C-2"]}
+{"id": "syn_61", "grade": 3, "raw_seq": ["S_H37", "M_H59", "M_H93", "F_H103"], "action_seq": ["START_H37", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+1_C-1"]}
+{"id": "syn_65", "grade": 3, "raw_seq": ["S_H25", "M_H46", "M_H68", "M_H100", "F_H122"], "action_seq": ["START_H25", "MOVE_R+2_C-1", "MOVE_R+2_C+0", "MOVE_R+3_C-1", "MOVE_R+2_C+0"]}
+{"id": "syn_864", "grade": 3, "raw_seq": ["S_H1", "M_H23", "M_H57", "F_H66"], "action_seq": ["START_H1", "MOVE_R+2_C+0", "MOVE_R+3_C+1", "MOVE_R+1_C-2"]}
+{"id": "syn_178", "grade": 4, "raw_seq": ["S_H24", "M_H45", "M_H66", "M_H101", "F_H124"], "action_seq": ["START_H24", "MOVE_R+2_C-1", "MOVE_R+2_C-1", "MOVE_R+3_C+2", "MOVE_R+2_C+1"]}
+{"id": "syn_1116", "grade": 6, "raw_seq": ["S_H30", "M_H36", "M_H91", "M_H147", "F_H189"], "action_seq": ["START_H30", "DYNO_R+1_C-5", "DYNO_R+5_C+0", "DYNO_R+5_C+1", "MOVE_R+4_C-2"]}
+{"id": "syn_209", "grade": 3, "raw_seq": ["S_H8", "M_H30", "M_H39", "M_H61", "F_H70"], "action_seq": ["START_H8", "MOVE_R+2_C+0", "MOVE_R+1_C-2", "MOVE_R+2_C+0", "MOVE_R+1_C-2"]}
+{"id": "syn_285", "grade": 3, "raw_seq": ["S_H12", "M_H46", "M_H68", "M_H89", "F_H99"], "action_seq": ["START_H12", "MOVE_R+3_C+1", "MOVE_R+2_C+0", "MOVE_R+2_C-1", "MOVE_R+1_C-1"]}
+{"id": "syn_457", "grade": 3, "raw_seq": ["S_H37", "M_H57", "M_H79", "M_H100", "F_H124"], "action_seq": ["START_H37", "MOVE_R+2_C-2", "MOVE_R+2_C+0", "MOVE_R+2_C-1", "MOVE_R+2_C+2"]}
+{"id": "syn_501", "grade": 5, "raw_seq": ["S_H19", "M_H50", "M_H85", "M_H117", "M_H163", "F_H193"], "action_seq": ["START_H19", "MOVE_R+3_C-2", "MOVE_R+3_C+2", "MOVE_R+3_C-1", "MOVE_R+4_C+2", "MOVE_R+3_C-3"]}
+{"id": "syn_563", "grade": 5, "raw_seq": ["S_H7", "M_H40", "M_H71", "M_H103", "M_H146", "F_H166"], "action_seq": ["START_H7", "LOCK_R+3_C+0", "MOVE_R+3_C-2", "MOVE_R+3_C-1", "MOVE_R+4_C-1", "MOVE_R+2_C-2"]}
+{"id": "syn_51", "grade": 5, "raw_seq": ["S_H31", "M_H73", "M_H116", "M_H160", "F_H192"], "action_seq": ["START_H31", "MOVE_R+4_C-2", "MOVE_R+4_C-1", "LOCK_R+4_C+0", "MOVE_R+3_C-1"]}
+{"id": "syn_228", "grade": 6, "raw_seq": ["S_H40", "M_H70", "M_H123", "M_H159", "F_H196"], "action_seq": ["START_H40", "MOVE_R+3_C-3", "DYNO_R+5_C-2", "MOVE_R+3_C+3", "DYNO_R+3_C+4"]}
