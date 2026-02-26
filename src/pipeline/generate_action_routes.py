@@ -6,13 +6,6 @@ import torch
 from src.env.board import Board
 from src.models.deeprouteset import DeepRouteSet
 
-def ccw(A, B, C):
-    return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
-
-def intersect(A, B, C, D):
-    if A == C or A == D or B == C or B == D: return False
-    return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
-
 try:
     from src.data.tokenizer import ActionTokenizer
 except ImportError:
@@ -72,11 +65,10 @@ def main():
             bos_token = "<BOS>" if "<BOS>" in tokenizer.token2id else "<START>"
             seq_input = torch.tensor([[tokenizer.token2id.get(bos_token, 0)]], dtype=torch.long, device=device)
 
-            if grade <= 4: dyn_max_reach, dyn_finish_r = 4.0, 14
-            else: dyn_max_reach, dyn_finish_r = 6.0, 16
+            if grade <= 4: dyn_max_reach, dyn_finish_r = 4.0, 15
+            else: dyn_max_reach, dyn_finish_r = 6.0, 17
 
             out_ids = []
-            segments = [] # 记录推理过程中的所有线段
             lh_r, lh_c, rh_r, rh_c = -1, -1, -1, -1
 
             for _ in range(max_len):
@@ -96,27 +88,24 @@ def main():
                     
                     for tok, idx in tokenizer.token2id.items():
                         if tok in ["<PAD>", "<UNK>", "<BOS>", "<START>"]: 
-                            mask[idx] = -float('inf')
-                            continue
+                            mask[idx] = -float('inf'); continue
                             
                         if step < 2:
                             if not tok.startswith("START_"): mask[idx] = -float('inf')
                             elif step == 1:
-                                if "LH" in prev_tok and "LH" in tok: mask[idx] = -float('inf')
-                                if "RH" in prev_tok and "RH" in tok: mask[idx] = -float('inf')
+                                if last_hand == "LH" and "LH" in tok: mask[idx] = -float('inf')
+                                if last_hand == "RH" and "RH" in tok: mask[idx] = -float('inf')
                             continue
 
                         if tok.startswith("START_"):
-                            mask[idx] = -float('inf')
-                            continue
-                            
+                            mask[idx] = -float('inf'); continue
+
                         if "_H" in tok:
                             hand, hid_str = tok.split("_H")
                             r, c = board.from_id(int(hid_str))
                             is_lh = "LH" in hand
                             
                             cur_r = lh_r if is_lh else rh_r
-                            cur_c = lh_c if is_lh else rh_c
                             static_r, static_c = (rh_r, rh_c) if is_lh else (lh_r, lh_c)
                             
                             if step >= 2 and last_hand is not None:
@@ -124,19 +113,13 @@ def main():
                                 if last_hand == "RH" and not is_lh: mask[idx] = -float('inf')
                             
                             if static_r != -1:
-                                if r <= cur_r: mask[idx] = -float('inf') # 向上
-                                if is_lh and c > static_c + 1: mask[idx] = -float('inf') # 防交叉
-                                if not is_lh and c < static_c - 1: mask[idx] = -float('inf')
-                                if math.hypot(r - static_r, c - static_c) > dyn_max_reach: mask[idx] = -float('inf')
+                                if r <= cur_r: mask[idx] = -float('inf') 
+                                
+                                # 【同频铁律：左手绝不在右手右边】
+                                if is_lh and c > static_c: mask[idx] = -float('inf') 
+                                if not is_lh and c < static_c: mask[idx] = -float('inf')
 
-                                # 【几何雷达：如果这条新线段与历史任意线段交叉，无情封杀！】
-                                if cur_r != -1:
-                                    is_crossing = False
-                                    for seg in segments:
-                                        if intersect((cur_r, cur_c), (r, c), seg[0], seg[1]):
-                                            is_crossing = True
-                                            break
-                                    if is_crossing: mask[idx] = -float('inf')
+                                if math.hypot(r - static_r, c - static_c) > dyn_max_reach: mask[idx] = -float('inf')
 
                 probs = torch.softmax(logits + mask, dim=-1)
                 if torch.isnan(probs).any() or probs.sum() == 0: break
@@ -150,12 +133,7 @@ def main():
                 tok = tokenizer.id2token[next_id]
                 if "_H" in tok:
                     r, c = board.from_id(int(tok.split("_H")[-1]))
-                    is_lh = "LH" in tok
-                    prev_r = lh_r if is_lh else rh_r
-                    prev_c = lh_c if is_lh else rh_c
-                    if prev_r != -1: segments.append(((prev_r, prev_c), (r, c))) # 记录成功走过的线段
-                    
-                    if is_lh: lh_r, lh_c = r, c
+                    if "LH" in tok: lh_r, lh_c = r, c
                     else: rh_r, rh_c = r, c
 
             action_tokens = tokenizer.decode(out_ids)
@@ -168,7 +146,7 @@ def main():
             if len(holds) >= 5:
                 success_recs.append({"id": f"gen_{i:04d}", "grade": grade, "action_tokens": action_tokens, "seq_betamove": holds})
 
-    print(f"[{__name__}] 几何防交叉生成完毕! 尝试生成 {num_gen} 条, 合法 {len(success_recs)} 条")
+    print(f"✅ 生成完毕! 合法 {len(success_recs)} 条")
     with (art_dir / "action_generated_routes.jsonl").open("w", encoding="utf-8") as f:
         for r in success_recs: f.write(json.dumps(r) + "\n")
 
