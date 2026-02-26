@@ -1,153 +1,171 @@
-from __future__ import annotations
 import argparse
 import json
+import math
 from pathlib import Path
+
 import torch
-import yaml
-
-from src.common.seed import set_seed
-from src.common.logging import get_logger
-from src.common.paths import make_run_dir, write_meta
-from src.data.tokenizer import load_tokenizer
 from src.env.board import Board
-from src.models.deeprouteset import DeepRouteSet
-
-def get_latest_action_ckpt(out_dir: str) -> Path:
-    base = Path(out_dir)
-    runs = sorted(base.glob("*_action_model_*"))
-    if not runs:
-        raise FileNotFoundError("没有找到 action_model 的运行记录！")
-    ckpt = runs[-1] / "action_model.pt"
-    if not ckpt.exists():
-        raise FileNotFoundError(f"找不到权重文件: {ckpt}")
-    return ckpt
+from src.models.action_model import ActionClimbLSTM
+from src.data.action_tokenizer import ActionTokenizer
 
 def decode_actions_to_holds(action_tokens: list[str], board: Board) -> list[int] | None:
     """
-    生物力学解码：把左右手分离的动作，翻译回物理岩板上的绝对坐标。
+    带有严格生物力学约束的解码器。
+    彻底消灭“一只手单吊”（双臂跨度过大）的无效路线！
     """
     holds = []
     lh_r, lh_c = -1, -1
     rh_r, rh_c = -1, -1
+    max_reach = 6.0 # 绝对物理限制：双臂距离不能超过 6.0 格
 
     for tok in action_tokens:
         if tok.startswith("START_H"):
             hid_str = tok.split("H")[-1]
-            if not hid_str.isdigit(): return None
+            if not hid_str.isdigit(): continue
             hid = int(hid_str)
             r, c = board.from_id(hid)
             
-            # 初始化左右手位置
             if lh_r == -1 and rh_r == -1:
                 lh_r, lh_c = r, c
                 rh_r, rh_c = r, c
             elif r != lh_r or c != lh_c:
-                if c > lh_c:
-                    rh_r, rh_c = r, c
-                else:
-                    rh_r, rh_c = lh_r, lh_c
-                    lh_r, lh_c = r, c
+                if c > lh_c: rh_r, rh_c = r, c
+                else: rh_r, rh_c, lh_r, lh_c = lh_r, lh_c, r, c
             holds.append(hid)
             
         elif "_R" in tok and "_C" in tok:
             try:
                 parts = tok.split("_")
-                hand = parts[0]  # "LH" 或 "RH"
-                r_part = [p for p in parts if p.startswith('R') and (p[1]=='+' or p[1]=='-')][0]
-                c_part = [p for p in parts if p.startswith('C') and (p[1]=='+' or p[1]=='-')][0]
-                dr = int(r_part[1:])
-                dc = int(c_part[1:])
+                hand = parts[0]  
+                dr = int([p for p in parts if p.startswith('R') and (p[1] in '+-')][0][1:])
+                dc = int([p for p in parts if p.startswith('C') and (p[1] in '+-')][0][1:])
             except Exception:
-                return None
+                continue
             
-            # 分别对左手和右手应用位移计算
             if hand == "LH":
-                if lh_r == -1: return None
-                lh_r += dr
-                lh_c += dc
-                if 0 <= lh_r < board.rows and 0 <= lh_c < board.cols:
-                    holds.append(board.to_id(lh_r, lh_c))
-                else: return None
+                if lh_r == -1: continue
+                new_lh_r, new_lh_c = lh_r + dr, lh_c + dc
+                
+                # 1. 越界检查
+                if not (0 <= new_lh_r < board.rows and 0 <= new_lh_c < board.cols): break
+                # 2. 物理跨度检查：如果这只手伸过去，导致双手距离超过极限，立刻熔断！
+                if rh_r != -1 and math.hypot(new_lh_r - rh_r, new_lh_c - rh_c) > max_reach: break
+                
+                lh_r, lh_c = new_lh_r, new_lh_c
+                holds.append(board.to_id(lh_r, lh_c))
+                
             elif hand == "RH":
-                if rh_r == -1: return None
-                rh_r += dr
-                rh_c += dc
-                if 0 <= rh_r < board.rows and 0 <= rh_c < board.cols:
-                    holds.append(board.to_id(rh_r, rh_c))
-                else: return None
-            else:
-                return None
-    return holds
+                if rh_r == -1: continue
+                new_rh_r, new_rh_c = rh_r + dr, rh_c + dc
+                
+                if not (0 <= new_rh_r < board.rows and 0 <= new_rh_c < board.cols): break
+                if lh_r != -1 and math.hypot(lh_r - new_rh_r, lh_c - new_rh_c) > max_reach: break
+                
+                rh_r, rh_c = new_rh_r, new_rh_c
+                holds.append(board.to_id(rh_r, rh_c))
+
+    # 去重
+    clean_holds = []
+    for h in holds:
+        if not clean_holds or clean_holds[-1] != h: clean_holds.append(h)
+
+    return clean_holds
 
 def main():
+    import yaml
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/phase2.yaml")
-    ap.add_argument("--grades", default="3,4,5,6")
     args = ap.parse_args()
 
-    cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    set_seed(int(cfg["project"]["seed"]))
+    with open(args.config, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
 
-    out_root = cfg["project"].get("out_dir", "outputs/phase2")
-    run = make_run_dir("generate_action", root=out_root)
-    write_meta(run)
+    # 找到最新的 checkpoint
+    run_dir = Path("outputs/phase2")
+    if not run_dir.exists():
+        print("No run dir found!")
+        return
 
-    logger = get_logger("generate_action", str(run.root / "stdout.log"))
-    device = torch.device(cfg["project"]["device"])
-    board = Board(rows=int(cfg["board"]["rows"]), cols=int(cfg["board"]["cols"]))
+    subdirs = [d for d in run_dir.iterdir() if d.is_dir() and "action_model" in d.name]
+    if not subdirs:
+        print("No model found!")
+        return
+    subdirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+    latest_ckpt_dir = subdirs[0]
+    ckpt_path = latest_ckpt_dir / "action_model.pt"
 
-    proc = Path("data/processed_actions")
-    tok = load_tokenizer(str(proc / "action_tokenizer_vocab.json"))
-    
-    ckpt_path = get_latest_action_ckpt(out_root)
-    logger.info(f"Loading checkpoint: {ckpt_path}")
-    ckpt = torch.load(ckpt_path, map_location="cpu")
+    print(f"[{__name__}] Loading checkpoint: {ckpt_path}")
 
-    model = DeepRouteSet(
-        vocab_size=ckpt["vocab_size"],
-        embed_dim=int(cfg["model"]["embed_dim"]),
-        hidden_dim=int(cfg["model"]["hidden_dim"]),
-        num_layers=int(cfg["model"]["num_layers"]),
-        pad_id=ckpt["pad_id"]
+    # 获取最新时间戳，用于创建新的 generate 目录
+    ts = latest_ckpt_dir.name.split("_")[0] + "_" + latest_ckpt_dir.name.split("_")[1]
+    hash_tag = latest_ckpt_dir.name.split("_")[-1]
+    out_dir = run_dir / f"{ts}_generate_action_{hash_tag}"
+    art_dir = out_dir / "artifacts"
+    art_dir.mkdir(parents=True, exist_ok=True)
+
+    # 加载 Tokenizer
+    vocab_path = Path("data/processed_actions/action_tokenizer_vocab.json")
+    tokenizer = ActionTokenizer(str(vocab_path))
+
+    model_cfg = cfg["model"]
+    model = ActionClimbLSTM(
+        vocab_size=tokenizer.vocab_size,
+        embed_dim=model_cfg["embed_dim"],
+        hidden_dim=model_cfg["hidden_dim"],
+        num_layers=model_cfg["num_layers"],
+        dropout=model_cfg["dropout"]
     )
-    model.load_state_dict(ckpt["state_dict"])
-    model.to(device).eval()
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.load_state_dict(torch.load(ckpt_path, map_location=device))
+    model.to(device)
+    model.eval()
 
-    grades = [int(x.strip()) for x in args.grades.split(",") if x.strip() != ""]
-    samples_per_grade = int(cfg["generation"]["samples_per_grade"])
-    max_len = int(cfg["data"]["max_seq_len"])
-    temperature = float(cfg["generation"]["temperature"])
-    top_k = int(cfg["generation"]["top_k"])
+    board = Board()
+    num_gen = cfg["generate"]["num_samples"]
+    max_len = cfg["generate"]["max_length"]
+    temp = cfg["generate"]["temperature"]
 
-    out_file = run.artifacts / "action_generated_routes.jsonl"
-    n_total = 0
-    n_ok = 0
+    success_recs = []
+    
+    with torch.no_grad():
+        for i in range(num_gen):
+            grade = torch.randint(3, 7, (1,)).item()
+            c_input = torch.tensor([[grade]], dtype=torch.long, device=device)
+            start_tok = tokenizer.token2id.get("<START>", 0)
+            seq_input = torch.tensor([[start_tok]], dtype=torch.long, device=device)
 
-    with out_file.open("w", encoding="utf-8") as f_out:
-        for g in grades:
-            prefix = [tok.bos_id, tok.vocab.get(f"<G{g}>", tok.unk_id)]
-            for _ in range(samples_per_grade):
-                ids = model.generate(
-                    bos=tok.bos_id, eos=tok.eos_id,
-                    prefix=prefix, max_len=max_len,
-                    temperature=temperature, top_k=top_k
-                )
-                action_tokens = tok.decode(ids)
-                n_total += 1
+            out_ids = []
+            for _ in range(max_len):
+                logits = model(c_input, seq_input)
+                next_logits = logits[0, -1, :] / temp
+                probs = torch.softmax(next_logits, dim=-1)
+                next_id = torch.multinomial(probs, num_samples=1).item()
+                
+                if next_id == tokenizer.token2id.get("<END>", 1):
+                    break
+                    
+                out_ids.append(next_id)
+                seq_input = torch.cat([seq_input, torch.tensor([[next_id]], device=device)], dim=1)
 
-                holds = decode_actions_to_holds(action_tokens, board)
-                if holds is not None and len(holds) >= 3:
-                    rec = {
-                        "grade": g,
-                        "action_tokens": action_tokens,
-                        "seq_betamove": holds,
-                        "board": "moonboard"
-                    }
-                    f_out.write(json.dumps(rec, ensure_ascii=False) + "\n")
-                    n_ok += 1
+            action_tokens = tokenizer.decode(out_ids)
+            holds = decode_actions_to_holds(action_tokens, board)
+            
+            if holds and len(holds) >= 4:
+                rec = {
+                    "id": f"gen_action_{i:04d}",
+                    "grade": grade,
+                    "action_tokens": action_tokens,
+                    "seq_betamove": holds
+                }
+                success_recs.append(rec)
 
-    pass_rate = (n_ok / n_total) if n_total > 0 else 0
-    logger.info(f"生物力学生成完毕! 尝试生成 {n_total} 条, 物理合法 {n_ok} 条 (合法率 {pass_rate:.1%})")
+    print(f"[{__name__}] 生物力学生成完毕! 尝试生成 {num_gen} 条, 物理合法 {len(success_recs)} 条 (合法率 {len(success_recs)/num_gen*100:.1f}%)")
+    
+    out_file = art_dir / "action_generated_routes.jsonl"
+    with out_file.open("w", encoding="utf-8") as f:
+        for r in success_recs:
+            f.write(json.dumps(r) + "\n")
 
 if __name__ == "__main__":
     main()
