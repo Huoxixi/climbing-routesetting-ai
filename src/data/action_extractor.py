@@ -8,53 +8,94 @@ from pathlib import Path
 from src.env.board import Board
 
 
-def determine_action(dr: int, dc: int) -> str:
-    """
-    根据物理位移向量 (dr, dc) 推断动作类型 (参考 Wei 2014)
-    """
-    dist = math.hypot(dr, dc)
-    
-    # 启发式规则 (Heuristic Rules)
-    if dist >= 4.5:
-        # 距离超过 4.5 格，通常需要动态发力或大跳
-        return "DYNO"
-    elif dc == 0 and dr >= 3:
-        # 横向不位移，纵向大幅拉伸，需要强锁臂能力
-        return "LOCK"
-    elif abs(dc) >= 3 and dr <= 1:
-        # 横向大幅度移动，通常是交叉手或大侧拉
-        return "CROSS"
-    else:
-        # 默认普通移动
-        return "MOVE"
+class ClimberState:
+    """生物力学状态机，记录攀岩者肢体位置"""
+    def __init__(self, board: Board):
+        self.board = board
+        self.lh_r, self.lh_c = -1, -1  # 左手坐标 (Left Hand)
+        self.rh_r, self.rh_c = -1, -1  # 右手坐标 (Right Hand)
+
+    def set_start(self, holds: list[int]):
+        """根据起步点初始化左右手"""
+        if len(holds) == 1:
+            # 单点起步 (Match Start)
+            r, c = self.board.from_id(holds[0])
+            self.lh_r, self.lh_c = r, c
+            self.rh_r, self.rh_c = r, c
+        else:
+            # 双点起步：靠左的是左手，靠右的是右手
+            r1, c1 = self.board.from_id(holds[0])
+            r2, c2 = self.board.from_id(holds[1])
+            if c1 <= c2:
+                self.lh_r, self.lh_c = r1, c1
+                self.rh_r, self.rh_c = r2, c2
+            else:
+                self.lh_r, self.lh_c = r2, c2
+                self.rh_r, self.rh_c = r1, c1
+
+    def infer_next_move(self, target_id: int) -> str:
+        """
+        核心生物力学推断：根据目标点位置，决定是动左手还是右手，以及做什么动作。
+        """
+        tr, tc = self.board.from_id(target_id)
+        
+        # 计算左右手到目标点的距离
+        dist_l = math.hypot(tr - self.lh_r, tc - self.lh_c) if self.lh_r != -1 else 999
+        dist_r = math.hypot(tr - self.rh_r, tc - self.rh_c) if self.rh_r != -1 else 999
+        
+        # 计算身体重心 (简化为双手中点)
+        center_c = (self.lh_c + self.rh_c) / 2 if self.lh_r != -1 and self.rh_r != -1 else tc
+
+        # 1. 决定用哪只手 (Heuristic Decision)
+        moving_hand = "UNKNOWN"
+        if tc < center_c - 1:
+            # 目标在身体极度偏左 -> 通常用左手 (除非刻意交叉)
+            moving_hand = "LH"
+        elif tc > center_c + 1:
+            # 目标在身体极度偏右 -> 通常用右手
+            moving_hand = "RH"
+        else:
+            # 在中间，谁离得近谁上，或者交替出手
+            moving_hand = "LH" if dist_l <= dist_r else "RH"
+
+        # 2. 判定具体动作类型
+        if moving_hand == "LH":
+            dr, dc = tr - self.lh_r, tc - self.lh_c
+            dist = dist_l
+        else:
+            dr, dc = tr - self.rh_r, tc - self.rh_c
+            dist = dist_r
+
+        action_type = "MOVE"
+        if dist >= 4.5:
+            action_type = "DYNO"
+        elif moving_hand == "LH" and dc > 2:
+            action_type = "CROSS" # 左手向右大跨度
+        elif moving_hand == "RH" and dc < -2:
+            action_type = "CROSS" # 右手向左大跨度
+        elif dc == 0 and dr >= 3:
+            action_type = "LOCK"
+            
+        # 3. 更新状态机
+        if moving_hand == "LH":
+            self.lh_r, self.lh_c = tr, tc
+        else:
+            self.rh_r, self.rh_c = tr, tc
+
+        # 组合新 Token: 例 RH_CROSS_R+2_C-3
+        return f"{moving_hand}_{action_type}_R{dr:+d}_C{dc:+d}"
 
 
 def parse_hid(token) -> int:
-    """
-    鲁棒地从 Token 中提取数字 ID。
-    支持: 45, "45", "H45", "S_H45", "M_H45"
-    """
-    if isinstance(token, int):
-        return token
-    
+    if isinstance(token, int): return token
     token = str(token)
-    if "_H" in token:
-        return int(token.split("_H")[-1])
-    elif token.startswith("H"):
-        return int(token[1:])
-    else:
-        return int(token)
+    if "_H" in token: return int(token.split("_H")[-1])
+    elif token.startswith("H"): return int(token[1:])
+    else: return int(token)
 
 
 def extract_action_sequence(seq: list, board: Board) -> list[str]:
-    """
-    将包含绝对 ID 的序列转化为相对动作序列。
-    例如: ["S_H10", "M_H45"] -> ["START_H10", "MOVE_R+3_C+2"]
-    """
-    if not seq:
-        return []
-
-    # 第一步：把所有 Token 转化成纯数字 ID
+    """带有左右手推断的新版提取逻辑"""
     parsed_ids = []
     for t in seq:
         try:
@@ -62,24 +103,29 @@ def extract_action_sequence(seq: list, board: Board) -> list[str]:
         except ValueError:
             continue
             
-    if not parsed_ids:
-        return []
+    if not parsed_ids: return []
 
-    # 第二步：必须有一个绝对位置作为起步的“锚点” (Anchor)
-    action_seq = [f"START_H{parsed_ids[0]}"]
-
-    # 第三步：将后续的移动转为“动作向量”
-    for i in range(1, len(parsed_ids)):
-        r1, c1 = board.from_id(parsed_ids[i - 1])
-        r2, c2 = board.from_id(parsed_ids[i])
-
-        dr = r2 - r1
-        dc = c2 - c1
-
-        action_type = determine_action(dr, dc)
+    # 初始化状态机
+    state = ClimberState(board)
+    
+    # 假设前 1 个或 2 个点是起步点 (MoonBoard 通常底下起步点很密集)
+    start_holds = [parsed_ids[0]]
+    if len(parsed_ids) > 1 and board.from_id(parsed_ids[1])[0] <= 4:
+        # 如果第二个点也很低，认为是双点起步
+        start_holds.append(parsed_ids[1])
         
-        # 格式化输出，例如 MOVE_R+3_C-2
-        action_token = f"{action_type}_R{dr:+d}_C{dc:+d}"
+    state.set_start(start_holds)
+
+    action_seq = []
+    # 记录起步点 Token
+    for hid in start_holds:
+        action_seq.append(f"START_H{hid}")
+
+    # 从起步点之后开始推断后续动作
+    start_idx = len(start_holds)
+    for i in range(start_idx, len(parsed_ids)):
+        target_hid = parsed_ids[i]
+        action_token = state.infer_next_move(target_hid)
         action_seq.append(action_token)
 
     return action_seq
@@ -94,35 +140,26 @@ def main():
     inp_dir = Path(args.inp_dir)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    board = Board()
 
-    board = Board()  # 默认 18x11
-
-    # 遍历 train, val, test 数据集
-    splits = ["train", "val", "test"]
-    
-    for split in splits:
+    for split in ["train", "val", "test"]:
         inp_file = inp_dir / f"{split}.jsonl"
         out_file = out_dir / f"{split}_actions.jsonl"
         
-        if not inp_file.exists():
-            continue
+        if not inp_file.exists(): continue
 
         lines = inp_file.read_text(encoding="utf-8").splitlines()
         processed_count = 0
 
         with out_file.open("w", encoding="utf-8") as f_out:
             for line in lines:
-                if not line.strip():
-                    continue
+                if not line.strip(): continue
                 rec = json.loads(line)
-                
-                # 获取排序后的原始序列 (可能是 S_H10 这种格式)
                 raw_seq = rec.get("seq", [])
                 
-                # 转化为动作序列
+                # 提取带左右手的动作序列！
                 action_seq = extract_action_sequence(raw_seq, board)
                 
-                # 保存新格式
                 new_rec = {
                     "id": rec.get("id", f"unknown_{processed_count}"),
                     "grade": rec.get("grade", 0),
@@ -132,15 +169,13 @@ def main():
                 f_out.write(json.dumps(new_rec, ensure_ascii=False) + "\n")
                 processed_count += 1
                 
-        print(f"[Action Extractor] {split:5s} : 转换了 {processed_count} 条路线 -> {out_file}")
+        print(f"[Biomechanical Extractor] {split:5s} : 转换了 {processed_count} 条路线 -> {out_file}")
 
-        # 打印一条 Demo 看看长什么样
         if processed_count > 0:
             demo = json.loads(out_file.read_text(encoding="utf-8").splitlines()[0])
-            print(f"  └─ Demo 原始: {demo['raw_seq']}")
-            print(f"  └─ Demo 动作: {demo['action_seq']}")
-            print("-" * 50)
-
+            print(f"  └─ 原始: {demo['raw_seq']}")
+            print(f"  └─ 生物力学动作: {demo['action_seq']}")
+            print("-" * 60)
 
 if __name__ == "__main__":
     main()

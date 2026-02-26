@@ -42,43 +42,29 @@ class Tokenizer:
 
 def build_action_tokenizer(rows: int, cols: int, max_grade: int) -> Tokenizer:
     """
-    针对动作序列构建全集词表 (暴力全排列，防止 OOV)
+    针对【生物力学动作序列】构建全集词表 (暴力全排列，防止 OOV)
     """
     vocab = {}
     idx = 0
     
-    # 1. 特殊 Token 与 等级 Token
     for sp in SPECIAL:
         vocab[sp] = idx; idx += 1
     for g in range(max_grade + 1):
         vocab[f'<G{g}>'] = idx; idx += 1
         
-    # 2. 绝对起步点 Token (START_H0 到 START_H197)
     for h in range(rows * cols):
         vocab[f'START_H{h}'] = idx; idx += 1
         
-    # 3. 相对动作 Token (所有可能的位移组合)
-    # 行最大可能位移是从底到顶 (-18 到 +18)，列是 (-11 到 +11)
+    # 加入左右手前缀
     action_types = ["MOVE", "DYNO", "LOCK", "CROSS"]
-    for atype in action_types:
-        for dr in range(-rows, rows + 1):
-            for dc in range(-cols, cols + 1):
-                vocab[f'{atype}_R{dr:+d}_C{dc:+d}'] = idx; idx += 1
+    hands = ["LH", "RH"]
+    
+    for hand in hands:
+        for atype in action_types:
+            for dr in range(-rows, rows + 1):
+                for dc in range(-cols, cols + 1):
+                    vocab[f'{hand}_{atype}_R{dr:+d}_C{dc:+d}'] = idx; idx += 1
                 
-    ivocab = {v: k for k, v in vocab.items()}
-    return Tokenizer(vocab=vocab, ivocab=ivocab)
-
-
-# 保留旧版兼容，以防老代码报错
-def build_tokenizer(n_holds: int, max_grade: int) -> Tokenizer:
-    vocab = {}
-    idx = 0
-    for sp in SPECIAL:
-        vocab[sp] = idx; idx += 1
-    for g in range(max_grade + 1):
-        vocab[f'<G{g}>'] = idx; idx += 1
-    for h in range(n_holds):
-        vocab[str(h)] = idx; idx += 1
     ivocab = {v: k for k, v in vocab.items()}
     return Tokenizer(vocab=vocab, ivocab=ivocab)
 
