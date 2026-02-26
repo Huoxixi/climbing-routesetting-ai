@@ -2,99 +2,110 @@ import argparse
 import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import matplotlib.image as mpimg
-from pathlib import Path
 import matplotlib.lines as mlines
-
-ROWS, COLS = 18, 11
-
-def parse_trace(action_tokens):
-    lh_history, rh_history, all_holds, global_steps = [], [], set(), []
-    step_idx = 1
-    
-    for tok in action_tokens:
-        if "_H" not in tok: continue
-        hand = "LH" if "LH" in tok else "RH"
-        hid = int(tok.split("_H")[-1])
-        r, c = hid // COLS, hid % COLS
-        if not (0 <= r < ROWS and 0 <= c < COLS): continue
-        all_holds.add((r, c))
-        
-        is_start = "START" in tok
-        idx_to_use = 0 if is_start else step_idx
-        
-        if hand == "LH":
-            lh_history.append((r, c))
-            global_steps.append(('LH', (r, c), idx_to_use))
-        else:
-            rh_history.append((r, c))
-            global_steps.append(('RH', (r, c), idx_to_use))
-            
-        if not is_start: step_idx += 1
-            
-    return lh_history, rh_history, list(all_holds), global_steps
-
-def plot_route(route_data, save_path, bg_path=None):
-    tokens = route_data.get("action_tokens", [])
-    if not tokens: return False
-    lh_history, rh_history, holds, global_steps = parse_trace(tokens)
-    if not holds: return False
-
-    fig, ax = plt.subplots(figsize=(6, 9))
-    if bg_path and Path(bg_path).exists():
-        try: ax.imshow(mpimg.imread(bg_path), extent=[-0.5, COLS-0.5, -0.5, ROWS-0.5], alpha=0.9)
-        except: pass
-    else:
-        ax.set_facecolor('#222222')
-        for r in range(ROWS):
-            for c in range(COLS): ax.add_patch(patches.Circle((c, r), 0.1, color='#444444'))
-        ax.set_xlim(-0.5, COLS - 0.5); ax.set_ylim(-0.5, ROWS - 0.5)
-
-    for r, c in holds:
-        ax.add_patch(patches.Circle((c, r), 0.45, color='#aaaaaa', alpha=0.3, zorder=1))
-        ax.add_patch(patches.Circle((c, r), 0.20, color='#ffffff', alpha=0.5, zorder=2))
-
-    if len(lh_history) > 1: ax.plot([p[1] for p in lh_history], [p[0] for p in lh_history], color='cyan', linestyle='-', linewidth=3, alpha=0.7, zorder=3)
-    if len(rh_history) > 1: ax.plot([p[1] for p in rh_history], [p[0] for p in rh_history], color='magenta', linestyle='-', linewidth=3, alpha=0.7, zorder=3)
-
-    text_records = {} 
-    for hand, (r, c), step_idx in global_steps:
-        ax.scatter(c, r, s=250, color='cyan' if hand == 'LH' else 'magenta', edgecolors='white', linewidth=1.5, alpha=0.9, zorder=4)
-        text_records[(r, c)] = ('S' if step_idx == 0 else str(step_idx), hand)
-
-    for (r, c), (text_str, hand) in text_records.items():
-        ax.text(c, r, text_str, color='black' if hand == 'LH' else 'white', fontsize=10, fontweight='bold', ha='center', va='center', zorder=5)
-
-    ax.set_xlim(-0.5, COLS - 0.5); ax.set_ylim(-0.5, ROWS - 0.5); ax.axis('off')
-    plt.title(f"Biomechanics Trace | V{route_data.get('grade', '?')}", fontsize=15, color='white', fontweight='bold', pad=10)
-    ax.legend(handles=[mlines.Line2D([], [], color='cyan', marker='o', markersize=10, label='Left Hand (L)'), mlines.Line2D([], [], color='magenta', marker='o', markersize=10, label='Right Hand (R)')], loc='upper left', facecolor='#222222', edgecolor='none', labelcolor='white')
-
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='#222222')
-    plt.close()
-    return True
+from pathlib import Path
+from src.env.board import Board
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--file", required=True)
-    ap.add_argument("--out", required=True)
-    ap.add_argument("--bg", default="assets/moonboard_bg.jpg")
-    ap.add_argument("--limit", type=int, default=30)
+    ap.add_argument("--file", default="outputs/figures/action_generated_routes.jsonl")
+    ap.add_argument("--out", default="outputs/figures/final_routes")
+    ap.add_argument("--rows", type=int, default=18)
+    ap.add_argument("--cols", type=int, default=11)
     args = ap.parse_args()
 
-    inp, out = Path(args.file), Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    lines = inp.read_text(encoding='utf-8').strip().splitlines()
+    inp = Path(args.file)
+    if not inp.exists(): return print(f"File not found: {args.file}")
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    board = Board()
     
-    saved = 0
-    for i, line in enumerate(lines):
-        if not line.strip(): continue
-        if saved >= args.limit: break
-        try:
-            if plot_route(json.loads(line), out / f"viz_{i:03d}.png", args.bg): saved += 1
-        except Exception as e: print(f"Error plotting route {i}: {e}")
-        
-    print(f"🎨 画图完成! 保存了 {saved} 张路线图。")
+    # === 完美复刻你的暗黑高级配色 ===
+    BG_COLOR = '#1e1e1e'
+    DOT_COLOR = '#444444'
+    HL_CIRCLE = '#333333'
+    CYAN = '#00ffff'
+    MAGENTA = '#ff00ff'
+    WHITE = '#ffffff'
+    
+    with inp.open('r', encoding='utf-8') as f:
+        for line in f:
+            if not line.strip(): continue
+            rec = json.loads(line)
+            id_str, grade = rec.get("id", "unk"), rec.get("grade", 3)
+            base_holds = rec.get("base_holds", [])
+            finish_holds = rec.get("finish_holds", [])
+            betamove = rec.get("seq_betamove", [])
+            action_seq = rec.get("action_seq", [])
+            
+            fig, ax = plt.subplots(figsize=(7, 10), facecolor=BG_COLOR)
+            ax.set_facecolor(BG_COLOR)
+            ax.set_aspect('equal')
+            ax.set_xlim(-1, args.cols)
+            ax.set_ylim(-1, args.rows)
+            ax.axis('off')
+
+            # 画底部的深灰色岩点阵列
+            for r in range(args.rows):
+                for c in range(args.cols):
+                    ax.add_patch(plt.Circle((c, r), 0.15, color=DOT_COLOR, zorder=1))
+
+            # 提取序号和左右手
+            hold_to_num = {}
+            for i, hid in enumerate(betamove):
+                if hid not in hold_to_num: hold_to_num[hid] = i + 1
+
+            hold_to_hand = {}
+            for act in action_seq:
+                if "_H" in act:
+                    try:
+                        hid = int(act.split("_H")[-1])
+                        hold_to_hand[hid] = 'lh' if "LH" in act else 'rh'
+                    except: pass
+
+            # === 灵魂修复 1：画青色/洋红连线！(绝不能少) ===
+            for i in range(len(betamove) - 1):
+                r1, c1 = board.from_id(betamove[i])
+                r2, c2 = board.from_id(betamove[i+1])
+                hand_color = CYAN if hold_to_hand.get(betamove[i+1]) == 'lh' else MAGENTA
+                ax.plot([c1, c2], [r1, r2], color=hand_color, linewidth=3, zorder=5)
+
+            all_hids = set(base_holds + finish_holds + betamove)
+            for hid in all_hids:
+                r, c = board.from_id(hid)
+                # === 灵魂修复 2：半透明高级光晕 ===
+                ax.add_patch(plt.Circle((c, r), 0.45, color=HL_CIRCLE, alpha=0.6, zorder=4))
+                
+                label, edge_col, fill_col = "", WHITE, WHITE
+                
+                # 优先级判断：B点/F点优先显示为白色底，数字点显示为彩色底
+                if hid in base_holds:
+                    label, fill_col, edge_col = 'B', WHITE, MAGENTA 
+                elif hid in finish_holds:
+                    label, fill_col, edge_col = 'F', WHITE, CYAN    
+                elif hid in hold_to_num:
+                    label = str(hold_to_num[hid])
+                    fill_col = CYAN if hold_to_hand.get(hid) == 'lh' else MAGENTA
+                    edge_col = WHITE
+                
+                # 画内圈圆点和数字
+                ax.add_patch(plt.Circle((c, r), 0.25, color=fill_col, ec=edge_col, lw=1.5, zorder=10))
+                ax.text(c, r, label, color='black', 
+                        fontsize=11, fontweight='bold', ha='center', va='center', zorder=20)
+
+            # 顶部标题和图例 (白色字体)
+            ax.text(args.cols/2 - 0.5, args.rows - 0.2, f"Biomechanics Trace | V{grade}", 
+                    color=WHITE, fontsize=16, fontweight='bold', ha='center', va='center')
+            
+            # 自定义图例
+            lh_legend = mlines.Line2D([], [], color=CYAN, marker='o', markersize=10, markerfacecolor=CYAN, markeredgecolor=WHITE, label='Left Hand (L)')
+            rh_legend = mlines.Line2D([], [], color=MAGENTA, marker='o', markersize=10, markerfacecolor=MAGENTA, markeredgecolor=WHITE, label='Right Hand (R)')
+            ax.legend(handles=[lh_legend, rh_legend], loc='upper left', frameon=False, labelcolor=WHITE, fontsize=12)
+
+            fig.savefig(out_dir / f"{id_str}.png", dpi=150, bbox_inches='tight', facecolor=BG_COLOR)
+            plt.close(fig)
+
+    print("✅ 颜值恢复！高级暗黑风画图完毕！")
 
 if __name__ == "__main__":
     main()

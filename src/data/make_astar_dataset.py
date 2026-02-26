@@ -5,32 +5,44 @@ import random
 from pathlib import Path
 from src.env.board import Board
 
+# 向量叉乘，判断点 C 是否在直线 AB 的逆时针方向
+def ccw(A, B, C):
+    return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
+
+# 判断线段 AB 和 CD 是否相交
+def intersect(A, B, C, D):
+    # 如果两条线段有共同端点（比如同一只手的连续两步），不算交叉
+    if A == C or A == D or B == C or B == D:
+        return False
+    return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+
 class BiomechSimulator:
     def __init__(self, board: Board):
         self.board = board
-        self.max_reach = 6.0 
 
-    def generate_route(self, finish_r: int) -> dict | None:
+    def generate_route(self) -> dict | None:
+        grade = random.randint(3, 6)
+        if grade <= 4:
+            finish_r, step_max_reach = random.randint(13, 15), random.uniform(3.0, 4.0)
+        else:
+            finish_r, step_max_reach = random.randint(16, 17), random.uniform(4.5, 6.0)
+
         for _ in range(20):
-            r1 = random.randint(0, 1)
-            c1 = random.randint(3, 7)
-            hid1 = self.board.to_id(r1, c1)
-            lh_r, lh_c, rh_r, rh_c = r1, c1, r1, c1
-            action_seq, holds_seq = [], []
+            start_r = random.choice([2, 3])
+            lh_c = random.randint(3, 6)
+            rh_c = lh_c + random.choice([1, 2])
             
-            if random.random() > 0.5:
-                c2 = c1 + random.choice([-1, 1])
-                hid2 = self.board.to_id(r1, c2)
-                if c1 < c2:
-                    lh_r, lh_c, rh_r, rh_c = r1, c1, r1, c2
-                    action_seq.extend([f"START_LH_H{hid1}", f"START_RH_H{hid2}"])
-                else:
-                    lh_r, lh_c, rh_r, rh_c = r1, c2, r1, c1
-                    action_seq.extend([f"START_LH_H{hid2}", f"START_RH_H{hid1}"])
-                holds_seq.extend([hid1, hid2])
-            else:
-                action_seq.extend([f"START_LH_H{hid1}", f"START_RH_H{hid1}"])
-                holds_seq.append(hid1)
+            lh_hid = self.board.to_id(start_r, lh_c)
+            rh_hid = self.board.to_id(start_r, rh_c)
+            
+            end_r, end_c = finish_r, random.randint(2, 8)
+            
+            action_seq = [f"START_LH_H{lh_hid}", f"START_RH_H{rh_hid}"]
+            holds_seq = [lh_hid, rh_hid]
+            lh_r, lh_c, rh_r, rh_c = start_r, lh_c, start_r, rh_c
+            
+            # 记录历史移动线段：[((r1, c1), (r2, c2)), ...]
+            segments = []
 
             stuck = False
             while max(lh_r, rh_r) < finish_r:
@@ -38,34 +50,50 @@ class BiomechSimulator:
                 elif rh_r < lh_r: moving_hand = 'RH'
                 else: moving_hand = random.choice(['LH', 'RH'])
 
-                if random.random() < 0.2: moving_hand = 'LH' if moving_hand == 'RH' else 'RH'
                 cur_r, cur_c = (lh_r, lh_c) if moving_hand == 'LH' else (rh_r, rh_c)
                 static_r, static_c = (rh_r, rh_c) if moving_hand == 'LH' else (lh_r, lh_c)
 
                 candidates = []
-                for nr in range(cur_r + 1, cur_r + 4):
-                    if nr > finish_r: continue
+                for nr in range(cur_r + 1, min(cur_r + 4, end_r + 1)):
                     for nc in range(max(0, static_c - 4), min(self.board.cols, static_c + 5)):
-                        if nr == static_r and nc == static_c: continue
-                        if math.hypot(nr - static_r, nc - static_c) <= self.max_reach:
-                            candidates.append((nr, nc))
+                        if nr == static_r and nc == static_c: continue 
+                        
+                        dist_hands = math.hypot(nr - static_r, nc - static_c)
+                        if dist_hands > step_max_reach: continue
+                        
+                        # 常规防交叉
+                        if moving_hand == 'LH' and nc > static_c + 1: continue
+                        if moving_hand == 'RH' and nc < static_c - 1: continue
+                            
+                        # 【核心防线：绝对线段防交叉】
+                        new_seg = ((cur_r, cur_c), (nr, nc))
+                        is_crossing = False
+                        for old_seg in segments:
+                            if intersect(new_seg[0], new_seg[1], old_seg[0], old_seg[1]):
+                                is_crossing = True
+                                break
+                        if is_crossing: continue
+
+                        dist_to_end = math.hypot(end_r - nr, end_c - nc)
+                        candidates.append((nr, nc, dist_to_end))
 
                 if not candidates:
                     stuck = True
                     break
 
-                weights = [0.1 if (moving_hand == 'LH' and nc > static_c) or (moving_hand == 'RH' and nc < static_c) else (2.0 if nr - cur_r == 2 else 1.0) for nr, nc in candidates]
-                nr, nc = random.choices(candidates, weights=weights, k=1)[0]
-                target_hid = self.board.to_id(nr, nc)
+                weights = [1.0 / ((d_end + 1.0) ** 2) for _, _, d_end in candidates]
+                nr, nc, _ = random.choices(candidates, weights=weights, k=1)[0]
                 
+                target_hid = self.board.to_id(nr, nc)
                 action_seq.append(f"{moving_hand}_H{target_hid}")
                 holds_seq.append(target_hid)
+                segments.append(((cur_r, cur_c), (nr, nc)))
                 
                 if moving_hand == 'LH': lh_r, lh_c = nr, nc
                 else: rh_r, rh_c = nr, nc
 
             if not stuck and 5 <= len(action_seq) <= 24:
-                return {"action_seq": action_seq, "seq_betamove": holds_seq}
+                return {"action_seq": action_seq, "seq_betamove": holds_seq, "grade": grade}
         return None
 
 def main():
@@ -80,14 +108,14 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     simulator = BiomechSimulator(board)
 
-    print("🚀 开始生成【绝对坐标 Token】数据...")
+    print("🚀 开始生成【绝对不交叉版】数据...")
     for split_name, target_num in {"train": args.num_train, "val": args.num_val, "test": args.num_test}.items():
         success_count = 0
         with (out_dir / f"{split_name}_actions.jsonl").open("w", encoding="utf-8") as f:
             while success_count < target_num:
-                route_data = simulator.generate_route(board.rows - 1)
+                route_data = simulator.generate_route()
                 if route_data:
-                    rec = {"id": f"sim_{split_name}_{success_count}", "grade": random.randint(3, 6), "action_seq": route_data["action_seq"], "seq_betamove": route_data["seq_betamove"]}
+                    rec = {"id": f"sim_{split_name}_{success_count}", "grade": route_data["grade"], "action_seq": route_data["action_seq"], "seq_betamove": route_data["seq_betamove"]}
                     f.write(json.dumps(rec) + "\n")
                     success_count += 1
         print(f"✅ {split_name} 生成完毕: {success_count} 条。")
