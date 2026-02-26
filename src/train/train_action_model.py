@@ -35,14 +35,20 @@ class LMDataset(Dataset):
             
         return torch.tensor(x_in, dtype=torch.long), torch.tensor(x_tg, dtype=torch.long)
 
-def load_sequences(path: str, tok, with_grade: bool, max_len: int):
+def load_sequences(jsonl_file, tok, with_grade=True, max_len=50):
     seqs = []
-    for line in Path(path).read_text(encoding='utf-8').splitlines():
-        if not line.strip(): continue
-        r = json.loads(line)
-        grade = int(r['grade']) if with_grade else None
-        # 这里会把 "DYNO_R+3_C-2" 这样的字符串转成 Token ID
-        seqs.append(tok.encode(r['seq'], grade=grade))
+    with open(jsonl_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if not line.strip(): continue
+            r = json.loads(line)
+            grade = r.get('grade', 3)
+            
+            # 【核心修复】：对接全新架构的 action_seq 字段
+            raw_seq = r.get('action_seq', [])
+            if not raw_seq: 
+                continue
+                
+            seqs.append(tok.encode(raw_seq, grade=grade))
     return seqs
 
 def main():

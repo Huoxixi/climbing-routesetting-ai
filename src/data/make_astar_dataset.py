@@ -1,137 +1,95 @@
-from __future__ import annotations
-
 import argparse
 import json
 import math
 import random
 from pathlib import Path
-
 from src.env.board import Board
 
 class BiomechSimulator:
     def __init__(self, board: Board):
         self.board = board
-        self.max_reach = 5.5  # 人类极限臂展 5.5格
+        self.max_reach = 6.0 
 
-    def generate_route(self, finish_r: int) -> list[int] | None:
-        # 每条路线最多重试 20 次，如果走到死胡同就推翻重来
+    def generate_route(self, finish_r: int) -> dict | None:
         for _ in range(20):
-            # 1. 随机起步点 (最底部 0 或 1 行)
             r1 = random.randint(0, 1)
             c1 = random.randint(3, 7)
-            start_holds = [(r1, c1)]
-            lh = (r1, c1)
-            rh = (r1, c1)
+            hid1 = self.board.to_id(r1, c1)
+            lh_r, lh_c, rh_r, rh_c = r1, c1, r1, c1
+            action_seq, holds_seq = [], []
             
-            # 50%概率双点起步
             if random.random() > 0.5:
                 c2 = c1 + random.choice([-1, 1])
-                start_holds.append((r1, c2))
+                hid2 = self.board.to_id(r1, c2)
                 if c1 < c2:
-                    lh, rh = (r1, c1), (r1, c2)
+                    lh_r, lh_c, rh_r, rh_c = r1, c1, r1, c2
+                    action_seq.extend([f"START_LH_H{hid1}", f"START_RH_H{hid2}"])
                 else:
-                    lh, rh = (r1, c2), (r1, c1)
+                    lh_r, lh_c, rh_r, rh_c = r1, c2, r1, c1
+                    action_seq.extend([f"START_LH_H{hid2}", f"START_RH_H{hid1}"])
+                holds_seq.extend([hid1, hid2])
+            else:
+                action_seq.extend([f"START_LH_H{hid1}", f"START_RH_H{hid1}"])
+                holds_seq.append(hid1)
 
-            path = list(start_holds)
             stuck = False
-
-            # 2. 左右手交替向上攀爬，直到摸到顶点 17 行
-            while max(lh[0], rh[0]) < finish_r:
-                # 优先动位置较低的那只手
-                if lh[0] < rh[0]: moving_hand = 'LH'
-                elif rh[0] < lh[0]: moving_hand = 'RH'
+            while max(lh_r, rh_r) < finish_r:
+                if lh_r < rh_r: moving_hand = 'LH'
+                elif rh_r < lh_r: moving_hand = 'RH'
                 else: moving_hand = random.choice(['LH', 'RH'])
 
-                # 20%概率打破死板交替，模拟连续出同一只手
-                if random.random() < 0.2:
-                    moving_hand = 'LH' if moving_hand == 'RH' else 'RH'
-
-                if moving_hand == 'LH':
-                    cur, static = lh, rh
-                else:
-                    cur, static = rh, lh
+                if random.random() < 0.2: moving_hand = 'LH' if moving_hand == 'RH' else 'RH'
+                cur_r, cur_c = (lh_r, lh_c) if moving_hand == 'LH' else (rh_r, rh_c)
+                static_r, static_c = (rh_r, rh_c) if moving_hand == 'LH' else (lh_r, lh_c)
 
                 candidates = []
-                # 寻找向上的岩点 (向上1到3格)
-                for nr in range(cur[0] + 1, cur[0] + 4):
+                for nr in range(cur_r + 1, cur_r + 4):
                     if nr > finish_r: continue
-                    
-                    # 左右搜索范围：基于静止手左右4格
-                    for nc in range(max(0, static[1] - 4), min(self.board.cols, static[1] + 5)):
-                        if (nr, nc) == static: continue
-                        
-                        # 判断是否超过臂展
-                        dist_to_static = math.hypot(nr - static[0], nc - static[1])
-                        if dist_to_static <= self.max_reach:
+                    for nc in range(max(0, static_c - 4), min(self.board.cols, static_c + 5)):
+                        if nr == static_r and nc == static_c: continue
+                        if math.hypot(nr - static_r, nc - static_c) <= self.max_reach:
                             candidates.append((nr, nc))
 
-                # 如果上面没有点了，说明走到了死胡同，放弃这一轮
                 if not candidates:
                     stuck = True
                     break
 
-                # 3. 评估每个可行点位的“舒服程度”
-                weights = []
-                for (nr, nc) in candidates:
-                    w = 1.0
-                    # 惩罚别扭的交叉手
-                    if moving_hand == 'LH' and nc > static[1]: w *= 0.1 
-                    if moving_hand == 'RH' and nc < static[1]: w *= 0.1
-                    # 偏好跨度稍大一点的点(2行)，让路线更干脆
-                    if nr - cur[0] == 2: w *= 2.0 
-                    weights.append(w)
-
-                # 掷骰子，选择下一个岩点
-                nxt = random.choices(candidates, weights=weights, k=1)[0]
-                path.append(nxt)
+                weights = [0.1 if (moving_hand == 'LH' and nc > static_c) or (moving_hand == 'RH' and nc < static_c) else (2.0 if nr - cur_r == 2 else 1.0) for nr, nc in candidates]
+                nr, nc = random.choices(candidates, weights=weights, k=1)[0]
+                target_hid = self.board.to_id(nr, nc)
                 
-                # 更新手的当前位置
-                if moving_hand == 'LH': lh = nxt
-                else: rh = nxt
+                action_seq.append(f"{moving_hand}_H{target_hid}")
+                holds_seq.append(target_hid)
+                
+                if moving_hand == 'LH': lh_r, lh_c = nr, nc
+                else: rh_r, rh_c = nr, nc
 
-            # 如果没有卡死，且攀爬步数合理(5到22步)，直接返回！
-            if not stuck and 5 <= len(path) <= 22:
-                return [self.board.to_id(r, c) for r, c in path]
-
-        # 20次都死胡同则返回失败（概率极小）
+            if not stuck and 5 <= len(action_seq) <= 24:
+                return {"action_seq": action_seq, "seq_betamove": holds_seq}
         return None
-
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out_dir", default="data/processed")
+    ap.add_argument("--out_dir", default="data/processed_actions")
     ap.add_argument("--num_train", type=int, default=1500)
     ap.add_argument("--num_val", type=int, default=150)
     ap.add_argument("--num_test", type=int, default=150)
     args = ap.parse_args()
 
-    out_dir = Path(args.out_dir)
+    out_dir, board = Path(args.out_dir), Board()
     out_dir.mkdir(parents=True, exist_ok=True)
-    board = Board()
     simulator = BiomechSimulator(board)
 
-    splits = {"train": args.num_train, "val": args.num_val, "test": args.num_test}
-    print("🚀 开始使用马尔可夫物理引擎极速生成数据...")
-
-    for split_name, target_num in splits.items():
-        out_file = out_dir / f"{split_name}.jsonl"
+    print("🚀 开始生成【绝对坐标 Token】数据...")
+    for split_name, target_num in {"train": args.num_train, "val": args.num_val, "test": args.num_test}.items():
         success_count = 0
-        
-        with out_file.open("w", encoding="utf-8") as f:
+        with (out_dir / f"{split_name}_actions.jsonl").open("w", encoding="utf-8") as f:
             while success_count < target_num:
-                finish_r = board.rows - 1
-                path_ids = simulator.generate_route(finish_r)
-                
-                if path_ids:
-                    grade = random.randint(3, 6)
-                    rec = {"id": f"sim_{split_name}_{success_count}", "grade": grade, "seq": path_ids}
+                route_data = simulator.generate_route(board.rows - 1)
+                if route_data:
+                    rec = {"id": f"sim_{split_name}_{success_count}", "grade": random.randint(3, 6), "action_seq": route_data["action_seq"], "seq_betamove": route_data["seq_betamove"]}
                     f.write(json.dumps(rec) + "\n")
                     success_count += 1
-                    
-                    # 每成功生成 100 条就打印一次进度
-                    if success_count % 100 == 0:
-                        print(f"  [{split_name}] 已生成 {success_count}/{target_num} 条...")
-
         print(f"✅ {split_name} 生成完毕: {success_count} 条。")
 
 if __name__ == "__main__":

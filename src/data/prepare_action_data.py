@@ -1,57 +1,47 @@
-from __future__ import annotations
-
 import argparse
 import json
 from pathlib import Path
-
-from src.data.tokenizer import build_action_tokenizer, save_tokenizer
-
+from collections import Counter
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--inp_dir", default="data/processed_actions")
-    ap.add_argument("--rows", type=int, default=18)
-    ap.add_argument("--cols", type=int, default=11)
-    ap.add_argument("--max_grade", type=int, default=20)
+    ap.add_argument("--dir", default="data/processed_actions")
     args = ap.parse_args()
-
-    inp_dir = Path(args.inp_dir)
+    work_dir = Path(args.dir)
     
-    # 1. 构建全新的 Action Tokenizer 词表
-    print("[Prepare Action Data] 正在构建相对动作全集词表...")
-    tok = build_action_tokenizer(args.rows, args.cols, args.max_grade)
-    
-    # 2. 保存词表
-    vocab_path = inp_dir / "action_tokenizer_vocab.json"
-    save_tokenizer(tok, str(vocab_path))
-    print(f"[Prepare Action Data] 词表构建完成！词表大小: {len(tok.vocab)} -> 保存至 {vocab_path}")
-
-    # 3. 将动作数据替换成统一的 "seq" 字段，供训练脚本直接读取
-    splits = ["train", "val", "test"]
-    for split in splits:
-        action_file = inp_dir / f"{split}_actions.jsonl"
-        final_file = inp_dir / f"{split}_final.jsonl"
-        
-        if not action_file.exists():
-            continue
-            
-        lines = action_file.read_text(encoding="utf-8").splitlines()
-        
-        with final_file.open("w", encoding="utf-8") as f_out:
-            for line in lines:
-                if not line.strip():
-                    continue
+    token_counter = Counter()
+    for split in ["train", "val", "test"]:
+        file_path = work_dir / f"{split}_actions.jsonl"
+        if not file_path.exists(): continue
+        for line in file_path.read_text(encoding="utf-8").splitlines():
+            if line.strip(): 
                 rec = json.loads(line)
+                token_counter.update(rec.get("action_seq", []))
                 
-                # 模型训练代码默认读取 'seq' 和 'grade'
-                final_rec = {
-                    "id": rec["id"],
-                    "grade": rec["grade"],
-                    "seq": rec["action_seq"]  # 把动作序列作为主要训练序列
-                }
-                f_out.write(json.dumps(final_rec, ensure_ascii=False) + "\n")
-                
-        print(f"[Prepare Action Data] 已打包 {split:5s} 训练集 -> {final_file}")
+    # 【终极兜底】：强行注入旧框架死活要找的 <BOS> 和 <EOS>
+    vocab = ["<PAD>", "<BOS>", "<EOS>", "<START>", "<END>", "<UNK>"] + [tok for tok, _ in token_counter.most_common()]
+    token2id = {t: i for i, t in enumerate(vocab)}
+    
+    vocab_path = work_dir / "action_tokenizer_vocab.json"
+    # 强制粉碎旧的毒词表！
+    if vocab_path.exists():
+        vocab_path.unlink()
+        
+    vocab_path.write_text(json.dumps(token2id, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[Prepare Data] 旧词表已粉碎，新词表注入 <BOS> 成功！大小: {len(vocab)}")
+
+    for split in ["train", "val", "test"]:
+        inp_file = work_dir / f"{split}_actions.jsonl"
+        if not inp_file.exists(): continue
+        processed = 0
+        with (work_dir / f"{split}_final.jsonl").open("w", encoding="utf-8") as f:
+            for line in inp_file.read_text(encoding="utf-8").splitlines():
+                if not line.strip(): continue
+                rec = json.loads(line)
+                rec["input_ids"] = [token2id.get(tok, token2id["<UNK>"]) for tok in rec.get("action_seq", [])]
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                processed += 1
+        print(f"[Prepare Data] 打包 {split} -> {processed} 条")
 
 if __name__ == "__main__":
     main()
