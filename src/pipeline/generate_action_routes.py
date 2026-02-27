@@ -90,15 +90,38 @@ def main():
                         if tok in ["<PAD>", "<UNK>", "<BOS>", "<START>"]: 
                             mask[idx] = -float('inf'); continue
                             
+                        # =========================================================
+                        # 🚀 起步 1 和 2 点的动态推理强掩码
+                        # =========================================================
                         if step < 2:
-                            if not tok.startswith("START_"): mask[idx] = -float('inf')
-                            elif step == 1:
-                                if last_hand == "LH" and "LH" in tok: mask[idx] = -float('inf')
-                                if last_hand == "RH" and "RH" in tok: mask[idx] = -float('inf')
+                            if not tok.startswith("START_"): mask[idx] = -float('inf'); continue
+                            
+                            if "_H" in tok:
+                                _, hid_str = tok.split("_H")
+                                r, c = board.from_id(int(hid_str))
+                                
+                                # 强制 1、2 号点必须在 2 或 3 层
+                                if r not in [2, 3]: mask[idx] = -float('inf')
+                                
+                                # 对于第 2 号点，验证与 1 号点的几何关系
+                                if step == 1:
+                                    if last_hand == "LH" and "LH" in tok: mask[idx] = -float('inf')
+                                    if last_hand == "RH" and "RH" in tok: mask[idx] = -float('inf')
+                                    
+                                    prev_r, prev_c = board.from_id(int(prev_tok.split("_H")[-1]))
+                                    
+                                    # 纵坐标差距 0-1
+                                    if abs(r - prev_r) > 1: mask[idx] = -float('inf')
+                                    
+                                    # 横坐标差距 < 3 且不共点 (1 或 2格)
+                                    if abs(c - prev_c) >= 3 or abs(c - prev_c) == 0: mask[idx] = -float('inf')
+                                    
+                                    # 左手在左，右手在右
+                                    if "LH" in tok and c >= prev_c: mask[idx] = -float('inf')
+                                    if "RH" in tok and c <= prev_c: mask[idx] = -float('inf')
                             continue
 
-                        if tok.startswith("START_"):
-                            mask[idx] = -float('inf'); continue
+                        if tok.startswith("START_"): mask[idx] = -float('inf'); continue
 
                         if "_H" in tok:
                             hand, hid_str = tok.split("_H")
@@ -114,11 +137,8 @@ def main():
                             
                             if static_r != -1:
                                 if r <= cur_r: mask[idx] = -float('inf') 
-                                
-                                # 【同频铁律：左手绝不在右手右边】
-                                if is_lh and c > static_c: mask[idx] = -float('inf') 
-                                if not is_lh and c < static_c: mask[idx] = -float('inf')
-
+                                if is_lh and c >= static_c: mask[idx] = -float('inf') 
+                                if not is_lh and c <= static_c: mask[idx] = -float('inf')
                                 if math.hypot(r - static_r, c - static_c) > dyn_max_reach: mask[idx] = -float('inf')
 
                 probs = torch.softmax(logits + mask, dim=-1)
@@ -144,9 +164,23 @@ def main():
                     if not holds or holds[-1] != hid: holds.append(hid)
             
             if len(holds) >= 5:
-                success_recs.append({"id": f"gen_{i:04d}", "grade": grade, "action_tokens": action_tokens, "seq_betamove": holds})
+                first_r, first_c = board.from_id(holds[0])
+                sec_r, sec_c = board.from_id(holds[1])
+                
+                # 🚀 重心计算：B点自动落在 1号 和 2号 正中央 (或者其中某一个正下方)
+                base_c = (first_c + sec_c) // 2
+                base_holds = [board.to_id(0, base_c)]
+                
+                finish_holds = [holds[-1]]
+                start_move_holds = [holds[0], holds[1]]
+                
+                success_recs.append({
+                    "id": f"gen_{i:04d}", "grade": grade, 
+                    "base_holds": base_holds, "finish_holds": finish_holds,
+                    "start_move_holds": start_move_holds,
+                    "action_seq": action_tokens, "seq_betamove": holds
+                })
 
-    print(f"✅ 生成完毕! 合法 {len(success_recs)} 条")
     with (art_dir / "action_generated_routes.jsonl").open("w", encoding="utf-8") as f:
         for r in success_recs: f.write(json.dumps(r) + "\n")
 
