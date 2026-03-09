@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 攀岩定线系统 - 物理感知生成器</title>
+    <style>
+        /* 1. 全局切换为暗黑模式 */
+        body { font-family: -apple-system, sans-serif; background-color: #121212; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        h1 { color: #ffffff; margin-bottom: 5px; }
+        .subtitle { color: #888888; margin-bottom: 20px; font-size: 0.9em; }
+        
+        /* 控制面板调整为暗色 */
+        .control-panel { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); margin-bottom: 20px; display: flex; gap: 15px; align-items: center; border: 1px solid #333; }
+        select { padding: 8px; border-radius: 5px; border: 1px solid #555; background: #2c2c2c; color: white; font-size: 16px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s; color: white; }
+        .btn-primary { background: #00e5ff; color: black; } .btn-primary:hover { background: #00b8cc; }
+        .btn-clear { background: #555555; } .btn-clear:hover { background: #444444; }
+
+        /* 2. 核心画板：与 Python 图片背景色 #1e1e1e 完全一致 */
+        .board-container { background: #1e1e1e; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; }
+        
+        /* 引入 CSS Grid 包含坐标轴 */
+        .board-layout { display: flex; }
+        .y-axis { display: flex; flex-direction: column; gap: 5px; margin-right: 15px; justify-content: space-between; padding-bottom: 5px; }
+        .y-label { height: 40px; display: flex; align-items: center; justify-content: flex-end; color: #888888; font-weight: bold; font-size: 14px; }
+        
+        .x-axis { display: flex; gap: 5px; margin-top: 15px; margin-left: 35px; /* 对齐网格 */ }
+        .x-label { width: 40px; text-align: center; color: #888888; font-weight: bold; font-size: 14px; }
+
+        .grid { display: grid; grid-template-columns: repeat(11, 40px); grid-template-rows: repeat(18, 40px); gap: 5px; }
+
+        /* 3. 岩点基础样式：还原深灰色无字小圆点 */
+        .hold { 
+            width: 40px; height: 40px; 
+            background-color: #444444; /* 空闲点的深灰色 */
+            border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 0px; /* 默认隐藏坐标文字 */
+            color: transparent; 
+            box-sizing: border-box; 
+            transition: all 0.2s; 
+            cursor: pointer;
+        }
+        .hold:hover { background-color: #555555; font-size: 10px; color: #aaaaaa; } /* 鼠标悬浮时才显示坐标 */
+
+        /* 4. AI 路线样式：完全对齐 Python 画图参数 */
+        .hold.lh { background-color: #00e5ff; color: black; font-size: 14px; font-weight: bold; border: 2px solid #ffffff; } /* 左手 青色 + 白边 */
+        .hold.rh { background-color: #ff4081; color: white; font-size: 14px; font-weight: bold; border: 2px solid #ffffff; } /* 右手 粉紫 + 白边 */
+        
+        .hold.base { 
+            background-color: #2ecc71; 
+            color: black; 
+            border-radius: 8px; /* 变为方形 */
+            font-size: 10px; 
+            font-weight: bold; 
+            border: 2px solid #ffffff; 
+            transform: scale(1.1); /* 起步点稍微放大 */
+        }
+        
+        .hold.finish { 
+            background-color: #f1c40f; 
+            color: black; 
+            font-size: 12px; 
+            font-weight: bold; 
+            border: 2px solid #ffffff; 
+            transform: scale(1.15); /* 完攀点放大 */
+        }
+        
+        .legend { margin-top: 20px; display: flex; gap: 20px; font-size: 14px; color: #cccccc; background: #1e1e1e; padding: 10px 20px; border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .color-box { width: 16px; height: 16px; border-radius: 50%; border: 1px solid white; }
+    </style>
+</head>
+<body>
+
+    <h1>🧗 AI 物理感知定线系统</h1>
+    <div class="subtitle">实时生成逼真定线图纸 (Biomechanics Trace)</div>
+
+    <div class="control-panel">
+        <div>
+            <strong>目标难度：</strong>
+            <select id="grade-select">
+                <option value="0">V0 (入门 - 密集且友好)</option>
+                <option value="1" selected>V1 (新手 - 基础发力)</option>
+                <option value="2">V2 (进阶 - 需要少量技巧)</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="generateRoute()" id="gen-btn">🚀 呼叫 AI 生成图纸</button>
+        <button class="btn btn-clear" onclick="clearBoard()">🗑️ 清空画板</button>
+    </div>
+
+    <div class="board-container">
+        <div class="board-layout">
+            <div class="y-axis" id="y-axis"></div>
+            <div class="grid" id="climbing-board"></div>
+        </div>
+        <div class="x-axis" id="x-axis"></div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background:#00e5ff;"></div> 左手 (LH)</div>
+        <div class="legend-item"><div class="color-box" style="background:#ff4081;"></div> 右手 (RH)</div>
+        <div class="legend-item"><div class="color-box" style="background:#2ecc71; border-radius: 4px;"></div> 起步 (START)</div>
+        <div class="legend-item"><div class="color-box" style="background:#f1c40f;"></div> 完攀 (TOP)</div>
+    </div>
+
+    <script>
+        const COLS = 11; const ROWS = 18;
+        const boardElement = document.getElementById('climbing-board');
+        const yAxisElement = document.getElementById('y-axis');
+        const xAxisElement = document.getElementById('x-axis');
+
+        function initBoard() {
+            boardElement.innerHTML = ''; yAxisElement.innerHTML = ''; xAxisElement.innerHTML = '';
+            
+            // 渲染 Y 轴 (18 -> 1)
+            for (let r = ROWS; r >= 1; r--) {
+                const yLabel = document.createElement('div');
+                yLabel.className = 'y-label';
+                yLabel.innerText = r;
+                yAxisElement.appendChild(yLabel);
+            }
+
+            // 渲染 X 轴 (A -> K)
+            for (let c = 0; c < COLS; c++) {
+                const xLabel = document.createElement('div');
+                xLabel.className = 'x-label';
+                xLabel.innerText = String.fromCharCode(65 + c);
+                xAxisElement.appendChild(xLabel);
+            }
+
+            // 渲染岩板网格
+            for (let r = ROWS; r >= 1; r--) {
+                for (let c = 0; c < COLS; c++) {
+                    const coord = `${String.fromCharCode(65 + c)}${r}`;
+                    const holdDiv = document.createElement('div');
+                    holdDiv.className = 'hold';
+                    holdDiv.id = `hold-${coord}`;
+                    holdDiv.innerText = coord; // 默认隐藏，hover时显示
+                    boardElement.appendChild(holdDiv);
+                }
+            }
+        }
+
+        function clearBoard() {
+            document.querySelectorAll('.hold').forEach(el => {
+                el.className = 'hold'; 
+                const coord = el.id.replace('hold-', '');
+                el.innerText = coord;
+            });
+        }
+
+        async function generateRoute() {
+            const btn = document.getElementById('gen-btn');
+            const grade = parseInt(document.getElementById('grade-select').value);
+            
+            btn.innerText = "🧠 AI 物理引擎计算中...";
+            btn.disabled = true;
+            clearBoard();
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/generate_route', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ grade: grade })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // 1. 渲染中间过程路线
+                    data.route.forEach((move, index) => {
+                        const el = document.getElementById(`hold-${move.coord}`);
+                        if (el) {
+                            el.classList.add(move.hand.toLowerCase()); 
+                            el.innerText = index + 1; // 标上序号
+                        }
+                    });
+
+                    // 2. 渲染完攀点 (覆盖过程点样式)
+                    data.finish_holds.forEach(coord => {
+                        const el = document.getElementById(`hold-${coord}`);
+                        if (el) {
+                            el.className = 'hold finish'; // 强制覆盖
+                            el.innerText = 'TOP';
+                        }
+                    });
+
+                    // 3. 渲染起步基准点 (覆盖过程点样式)
+                    data.base_holds.forEach(coord => {
+                        const el = document.getElementById(`hold-${coord}`);
+                        if (el) {
+                            el.className = 'hold base'; // 强制覆盖变成方形
+                            el.innerText = 'START';
+                        }
+                    });
+
+                } else {
+                    alert("⚠️ 生成失败: " + data.message);
+                }
+            } catch (error) {
+                alert("❌ 无法连接到后端，请检查后端是否启动！");
+            } finally {
+                btn.innerText = "🚀 呼叫 AI 生成图纸";
+                btn.disabled = false;
+            }
+        }
+
+        window.onload = initBoard;
+    </script>
+</body>
+</html>

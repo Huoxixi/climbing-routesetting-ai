@@ -61,7 +61,7 @@ def main():
 
     with torch.no_grad():
         for i in range(num_gen):
-            grade = torch.randint(3, 7, (1,)).item()
+            grade = torch.randint(0, 3, (1,)).item()
             bos_token = "<BOS>" if "<BOS>" in tokenizer.token2id else "<START>"
             seq_input = torch.tensor([[tokenizer.token2id.get(bos_token, 0)]], dtype=torch.long, device=device)
 
